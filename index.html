@@ -524,15 +524,23 @@ Game.prototype.handleInput=function(dt){
 if(this.nudgeDir!==0){
 var nudgeAmt=this.mobileSteerSpeed*dt*this.nudgeDir;
 var newX=this.player.x+nudgeAmt;
-newX=Math.max(-LANE_POSITIONS[2]-1,Math.min(-LANE_POSITIONS[0]+1,newX));
+var minX=LANE_POSITIONS[0]+0.5;
+var maxX=LANE_POSITIONS[2]-0.5;
+newX=Math.max(minX,Math.min(maxX,newX));
 this.player.x=newX;
 this.player.targetX=newX;
-var minLane=-5,maxLane=5;
-if(newX<=LANE_POSITIONS[0]+0.5)this.player.x=LANE_POSITIONS[0]+0.5;
-if(newX>=LANE_POSITIONS[2]-0.5)this.player.x=LANE_POSITIONS[2]-0.5;
-this.player.targetX=this.player.x;
-return}
-if(!this.steerCooldown)this.steerCooldown=0;if(this.steerCooldown>0)this.steerCooldown-=dt;if((this.keys['ArrowLeft']||this.keys['a']||this.keys['A'])&&this.steerCooldown<=0){this.player.switchLane(-1);this.steerCooldown=0.35}if((this.keys['ArrowRight']||this.keys['d']||this.keys['D'])&&this.steerCooldown<=0){this.player.switchLane(1);this.steerCooldown=0.35}if(this.keys['ArrowUp']||this.keys['w']||this.keys['W']){this.targetSpeed=Math.min(this.difficulty.maxSpeed,this.targetSpeed+ACCELERATION*dt)}else if(this.keys['ArrowDown']||this.keys['s']||this.keys['S']){this.targetSpeed=Math.max(10,this.targetSpeed-BRAKE_DECELERATION*dt)}else{this.targetSpeed=Math.min(this.difficulty.maxSpeed,this.targetSpeed+this.difficulty.speedIncrement*dt*60)}};
+if(this.keys['ArrowUp']||this.keys['w']||this.keys['W']){this.targetSpeed=Math.min(this.difficulty.maxSpeed,this.targetSpeed+ACCELERATION*dt)}
+else if(this.keys['ArrowDown']||this.keys['s']||this.keys['S']){this.targetSpeed=Math.max(10,this.targetSpeed-BRAKE_DECELERATION*dt)}
+else{this.targetSpeed=Math.min(this.difficulty.maxSpeed,this.targetSpeed+this.difficulty.speedIncrement*dt*60)}
+return;
+}
+if(!this.steerCooldown)this.steerCooldown=0;
+if(this.steerCooldown>0)this.steerCooldown-=dt;
+if((this.keys['ArrowLeft']||this.keys['a']||this.keys['A'])&&this.steerCooldown<=0){this.player.switchLane(-1);this.steerCooldown=0.35}
+if((this.keys['ArrowRight']||this.keys['d']||this.keys['D'])&&this.steerCooldown<=0){this.player.switchLane(1);this.steerCooldown=0.35}
+if(this.keys['ArrowUp']||this.keys['w']||this.keys['W']){this.targetSpeed=Math.min(this.difficulty.maxSpeed,this.targetSpeed+ACCELERATION*dt)}
+else if(this.keys['ArrowDown']||this.keys['s']||this.keys['S']){this.targetSpeed=Math.max(10,this.targetSpeed-BRAKE_DECELERATION*dt)}
+else{this.targetSpeed=Math.min(this.difficulty.maxSpeed,this.targetSpeed+this.difficulty.speedIncrement*dt*60)}};
 Game.prototype.checkLevelUp=function(){var nl=0;for(var i=LEVELS.length-1;i>=0;i--){if(this.score>=LEVELS[i].score){nl=i;break}}if(nl!==this.currentLevel){this.currentLevel=nl;var lvl=LEVELS[nl];this.scene.background.setHex(lvl.sky);this.scene.fog.color.setHex(lvl.sky);this.scene.fog.near=lvl.fogNear;this.scene.fog.far=lvl.fogFar;this.road.setEnvironment(lvl.env,lvl.grass,lvl.roadColor);if(lvl.weather==='rain'||lvl.weather==='thunderstorm')this.rain.visible=true;else this.rain.visible=false;if(lvl.weather==='thunderstorm')this.lightningTimer=2+Math.random()*3;else this.lightningTimer=0;this.ui.updateLevel(lvl)}};
 Game.prototype.updateWeather=function(dt){if(!this.rain.visible)return;var pos=this.rain.geometry.attributes.position.array;for(var i=0;i<this.rainCount;i++){pos[i*3+1]-=0.5+Math.random()*0.3;pos[i*3]+=(Math.random()-0.5)*0.05;if(pos[i*3+1]<-5){pos[i*3+1]=45+Math.random()*10;pos[i*3]=(Math.random()-0.5)*60;pos[i*3+2]=(Math.random()-0.5)*80}}this.rain.geometry.attributes.position.needsUpdate=true;if(this.lightningTimer>0){this.lightningTimer-=dt;if(this.lightningTimer<=0){this.lightningFlashing=true;this.lightningRestoreTime=0.08+Math.random()*0.12;this.scene.background.setHex(0xffffff);this.ambientLight.intensity=3;this.sunLight.intensity=4}}if(this.lightningFlashing){this.lightningRestoreTime-=dt;if(this.lightningRestoreTime<=0){this.lightningFlashing=false;var lvl=LEVELS[this.currentLevel];this.scene.background.setHex(lvl.sky);this.ambientLight.intensity=0.4;this.sunLight.intensity=1.5;this.lightningTimer=2+Math.random()*5}}};
 Game.prototype.update=function(){if(this.state!=='PLAYING')return;try{var dt=Math.min(this.clock.getDelta(),0.05);this.handleInput(dt);if(this.speed<this.targetSpeed)this.speed=Math.min(this.targetSpeed,this.speed+ACCELERATION*dt);else if(this.speed>this.targetSpeed)this.speed=Math.max(this.targetSpeed,this.speed-FRICTION*dt);if(this.nitroActive){this.nitroTimer-=dt;if(this.nitroTimer<=0){this.nitroActive=false;if(this.player)this.player.setFireActive(false)}}if(this.speed>this.topSpeed)this.topSpeed=this.speed;this.worldSpeed=this.speed*WORLD_SPEED_FACTOR;this.distance+=this.worldSpeed*dt*5;this.score=Math.floor(this.distance*0.1)+this.coinCount*5;this.checkLevelUp();this.updateWeather(dt);this.updateClouds(dt);this.road.update(this.worldSpeed,dt);this.player.update(dt);this.traffic.update(this.worldSpeed,dt);this.coins.update(this.worldSpeed,dt);if(this.nameSprite.visible){this.nameSprite.position.x=this.player.x;this.nameSprite.position.z=this.player.z}var cg=this.coins.checkCollection(this.player.getPosition());if(cg>0){this.coinCount+=cg;this.audio.playCoinPickup()}if(this.traffic.checkCollision(this.player.getCollisionBox())){this.player.takeDamage(this.difficulty.collisionDamage);this.audio.playCrash();this.shakeAmount=0.4;if(this.player.health<=0){this.gameOver();return}}var camX,camY,camZ;if(this.cameraInside){camX=this.player.x;camY=1.2;camZ=0.5}else{camX=this.player.x*0.35;camY=5.5;camZ=11}if(this.shakeAmount>0){camX+=(Math.random()-0.5)*this.shakeAmount;camY+=(Math.random()-0.5)*this.shakeAmount*0.5;this.shakeAmount*=0.88;if(this.shakeAmount<0.01)this.shakeAmount=0}this.camera.position.x+=(camX-this.camera.position.x)*0.08;this.camera.position.y+=(camY-this.camera.position.y)*0.08;this.camera.position.z+=(camZ-this.camera.position.z)*0.08;if(this.cameraInside){this.camera.lookAt(this.player.x,0.8,-15)}else{this.camera.lookAt(this.player.x*0.1,0.5,-8)}this.ui.updateHUD({speed:this.speed,maxSpeed:this.difficulty.maxSpeed,score:this.score,coins:this.coinCount,health:this.player.health,maxHealth:this.player.maxHealth,distance:this.distance,nitroActive:this.nitroActive,nitroTimer:this.nitroTimer,nitroMaxTimer:NITRO_DURATION});this.audio.updateEngine(this.speed,this.difficulty.maxSpeed,this.nitroActive)}catch(e){console.error('Update error:',e)}};
@@ -544,7 +552,7 @@ var canvas=document.getElementById('game-canvas');
 var game;
 try{game=new Game();window.game=game}catch(e){console.error('Game constructor FAILED:',e)}
 if(game){try{game.init(canvas)}catch(e){console.error('INIT FAILED:',e);var d=document.createElement('div');d.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.85);color:#ff3333;z-index:99999;padding:20px;font:14px monospace;overflow:auto;white-space:pre-wrap;cursor:pointer';d.textContent='ERROR:\n'+e.message+'\n\n'+e.stack+'\n\n(click to dismiss)';d.addEventListener('click',function(){d.remove()});document.body.appendChild(d)}}
-function animate(){requestAnimationFrame(animate);if(!game)return;try{game.update();game.render()}catch(e){}}
+function animate(){requestAnimationFrame(animate);if(!game)return;try{game.update()}catch(e){console.error('UPDATE ERROR:',e)}try{game.render()}catch(e){console.error('RENDER ERROR:',e)}}
 if(game)animate();
 </script>
 </body>
