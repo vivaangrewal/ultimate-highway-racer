@@ -8,7 +8,7 @@
 *{margin:0;padding:0;box-sizing:border-box}
 body{overflow:hidden;background:#000;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;color:#fff;user-select:none;-webkit-user-select:none}
 #game-container{width:100vw;height:100vh;position:relative}
-#game-canvas{display:block;width:100%;height:100%}
+#game-canvas{display:block;position:absolute;top:0;left:0}
 .hidden{display:none!important}
 #hud{position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none}
 #hud>*{pointer-events:auto}
@@ -550,7 +550,7 @@ var canvas=document.getElementById('game-canvas');
 var game;
 try{game=new Game();window.game=game}catch(e){console.error('Game constructor FAILED:',e)}
 if(game){try{game.init(canvas)}catch(e){console.error('INIT FAILED:',e);var d=document.createElement('div');d.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.85);color:#ff3333;z-index:99999;padding:20px;font:14px monospace;overflow:auto;white-space:pre-wrap;cursor:pointer';d.textContent='ERROR:\n'+e.message+'\n\n'+e.stack+'\n\n(click to dismiss)';d.addEventListener('click',function(){d.remove()});document.body.appendChild(d)}}
-function animate(){requestAnimationFrame(animate);if(!game)return;try{game.update()}catch(e){console.error('UPDATE ERROR:',e)}try{game.render()}catch(e){console.error('RENDER ERROR:',e)}}
+function animate(){requestAnimationFrame(animate);if(!game)return;try{game.update()}catch(e){if(!window._errDiv){window._errDiv=document.createElement('div');window._errDiv.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.9);color:#ff3333;z-index:99999;padding:20px;font:12px monospace;max-width:90vw;max-height:80vh;overflow:auto;white-space:pre-wrap;border:2px solid #ff3333;border-radius:8px';document.body.appendChild(window._errDiv)}window._errDiv.textContent='UPDATE ERROR:\n'+e.message+'\n'+e.stack}try{game.render()}catch(e){if(!window._errDiv2){window._errDiv2=document.createElement('div');window._errDiv2.style.cssText='position:fixed;bottom:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.9);color:#ffaa00;z-index:99999;padding:12px;font:12px monospace;max-width:90vw;white-space:pre-wrap;border:2px solid #ffaa00;border-radius:8px';document.body.appendChild(window._errDiv2)}window._errDiv2.textContent='RENDER ERROR:\n'+e.message}}
 if(game)animate();
 </script>
 </body>
