@@ -249,13 +249,110 @@ PlayerCar.prototype.clearGroup=function(){var l=this.group.children.slice();for(
 PlayerCar.prototype.buildFire=function(){try{this.fireGroup=new THREE.Group();this.fireGroup.visible=false;this.scene.add(this.fireGroup);var n=30,pos=new Float32Array(n*3),col=new Float32Array(n*3);for(var i=0;i<n;i++){pos[i*3]=0;pos[i*3+1]=0.3;pos[i*3+2]=2.8+Math.random()*1.2;var t=i/n;col[i*3]=1;col[i*3+1]=t<0.4?0.8:(t<0.7?0.4:0.1);col[i*3+2]=0}var geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(pos,3));geo.setAttribute('color',new THREE.BufferAttribute(col,3));this.fireGroup.add(new THREE.Points(geo,new THREE.PointsMaterial({size:0.35,vertexColors:true,transparent:true,opacity:0.85,blending:THREE.AdditiveBlending,depthWrite:false})));var gw=new THREE.Mesh(new THREE.SphereGeometry(0.2,6,6),new THREE.MeshBasicMaterial({color:0xff4400,transparent:true,opacity:0.5,blending:THREE.AdditiveBlending}));gw.position.set(0,0.3,3);this.fireGroup.add(gw)}catch(e){}};
 PlayerCar.prototype.setFireActive=function(a){if(this.fireGroup)this.fireGroup.visible=a};
 PlayerCar.prototype.updateFire=function(dt){if(!this.fireGroup||!this.fireGroup.visible)return;this.fireGroup.position.set(this.x,0,this.z);var pts=this.fireGroup.children[0];if(!pts||!pts.geometry)return;var pos=pts.geometry.attributes.position.array;var t=performance.now()*0.01;for(var i=0;i<pos.length/3;i++){pos[i*3]=(Math.random()-0.5)*0.5;pos[i*3+1]=0.2+Math.random()*0.3;pos[i*3+2]=2.8+Math.random()*1.5+Math.sin(t+i)*0.3}pts.geometry.attributes.position.needsUpdate=true};
-PlayerCar.prototype.buildWheels=function(bm,dm){var wg=new THREE.CylinderGeometry(0.3,0.3,0.2,12);var rg=new THREE.CylinderGeometry(0.18,0.18,0.22,8);var rm=mkMat(0xcccccc,0.1,0.9);this.wheels=[];[[-1,0.15,-1.4],[1,0.15,-1.4],[-1,0.15,1.4],[1,0.15,1.4]].forEach(function(p){var w=new THREE.Group();w.add(new THREE.Mesh(wg,dm).rotateX(Math.PI/2));w.add(new THREE.Mesh(rg,rm).rotateX(Math.PI/2));w.position.set(p[0],p[1],p[2]);this.group.add(w);this.wheels.push(w)}.bind(this))};
-PlayerCar.prototype.buildDefault=function(){this.clearGroup();this.group.scale.setScalar(1);var bm=mkMat(0xcc1111,0.12,0.9),gm=new THREE.MeshStandardMaterial({color:0x88bbee,roughness:0.05,metalness:0.4,transparent:true,opacity:0.45,envMapIntensity:1.5}),ch=mkMat(0xdddddd,0.03,0.97),dm=mkMat(0x111111,0.9),hl=mkBasic(0xffffee),tl=mkBasic(0xff1111);var self=this;this.group.add(this.addMesh(new THREE.BoxGeometry(1.85,0.35,4.6),bm,0,0.28,0,true));this.group.add(this.addMesh(new THREE.BoxGeometry(1.75,0.12,1.4),bm,0,0.52,-1.2));this.group.add(this.addMesh(new THREE.BoxGeometry(1.75,0.15,1),bm,0,0.53,1.4));this.group.add(this.addMesh(new THREE.BoxGeometry(1.65,0.35,1.9),gm,0,0.64,0));var ws=this.addMesh(new THREE.BoxGeometry(1.6,0.32,0.08),gm,0,0.7,-0.95);ws.rotation.x=-0.35;this.group.add(ws);var rw=this.addMesh(new THREE.BoxGeometry(1.55,0.28,0.08),gm,0,0.68,0.95);rw.rotation.x=0.3;this.group.add(rw);this.group.add(this.addMesh(new THREE.BoxGeometry(1.9,0.18,0.12),ch,0,0.22,-2.35));this.group.add(this.addMesh(new THREE.BoxGeometry(1.9,0.18,0.12),ch,0,0.22,2.35));this.group.add(this.addMesh(new THREE.BoxGeometry(1.2,0.2,0.05),dm,0,0.28,-2.32));[-1,1].forEach(function(ss){self.group.add(self.addMesh(new THREE.BoxGeometry(0.3,0.14,0.06),hl,ss*0.72,0.35,-2.33));self.group.add(self.addMesh(new THREE.BoxGeometry(0.25,0.12,0.06),tl,ss*0.75,0.35,2.33));self.group.add(self.addMesh(new THREE.BoxGeometry(0.06,0.12,3.6),bm,ss*0.95,0.15,0))});this.buildWheels(bm,dm)};
-PlayerCar.prototype.buildCar=function(c,s){this.clearGroup();this.group.scale.setScalar(s||1);var bm=mkMat(c,0.12,0.9),gm=new THREE.MeshStandardMaterial({color:0x88bbee,roughness:0.05,metalness:0.4,transparent:true,opacity:0.45,envMapIntensity:1.5}),ch=mkMat(0xdddddd,0.03,0.97),dm=mkMat(0x111111,0.9),hl=mkBasic(0xffffee),tl=mkBasic(0xff1111);var self=this;this.group.add(this.addMesh(new THREE.BoxGeometry(1.85,0.35,4.6),bm,0,0.28,0,true));this.group.add(this.addMesh(new THREE.BoxGeometry(1.75,0.12,1.4),bm,0,0.52,-1.2));this.group.add(this.addMesh(new THREE.BoxGeometry(1.75,0.15,1),bm,0,0.53,1.4));this.group.add(this.addMesh(new THREE.BoxGeometry(1.65,0.35,1.9),gm,0,0.64,0));var ws=this.addMesh(new THREE.BoxGeometry(1.6,0.32,0.08),gm,0,0.7,-0.95);ws.rotation.x=-0.35;this.group.add(ws);var rw=this.addMesh(new THREE.BoxGeometry(1.55,0.28,0.08),gm,0,0.68,0.95);rw.rotation.x=0.3;this.group.add(rw);this.group.add(this.addMesh(new THREE.BoxGeometry(1.9,0.18,0.12),ch,0,0.22,-2.35));this.group.add(this.addMesh(new THREE.BoxGeometry(1.9,0.18,0.12),ch,0,0.22,2.35));this.group.add(this.addMesh(new THREE.BoxGeometry(1.2,0.2,0.05),dm,0,0.28,-2.32));[-1,1].forEach(function(ss){self.group.add(self.addMesh(new THREE.BoxGeometry(0.3,0.14,0.06),hl,ss*0.72,0.35,-2.33));self.group.add(self.addMesh(new THREE.BoxGeometry(0.25,0.12,0.06),tl,ss*0.75,0.35,2.33));self.group.add(self.addMesh(new THREE.BoxGeometry(0.06,0.12,3.6),bm,ss*0.95,0.15,0))});this.buildWheels(bm,dm)};
-PlayerCar.prototype.buildBike=function(c,s){this.clearGroup();this.group.scale.setScalar(s||1);var bm=mkMat(c,0.3,0.7),ch=mkMat(0xdddddd,0.05,0.95),dm=mkMat(0x111111,0.9),hl=mkBasic(0xffffee),tl=mkBasic(0xff1111);var self=this;this.group.add(this.addMesh(new THREE.BoxGeometry(0.4,0.3,2.2),bm,0,0.5,0,true));this.group.add(this.addMesh(new THREE.BoxGeometry(0.35,0.12,0.6),dm,0,0.7,0.2));this.group.add(this.addMesh(new THREE.BoxGeometry(0.45,0.25,0.7),bm,0,0.65,-0.4));this.group.add(this.addMesh(new THREE.BoxGeometry(0.7,0.06,0.06),ch,0,0.75,-1));this.group.add(this.addMesh(new THREE.BoxGeometry(0.18,0.12,0.06),hl,0,0.65,-1.2));this.group.add(this.addMesh(new THREE.BoxGeometry(0.12,0.08,0.06),tl,0,0.55,1.2));this.group.add(this.addMesh(new THREE.CylinderGeometry(0.03,0.03,0.8,6),ch,0.2,0.3,0.3));var wg=new THREE.TorusGeometry(0.25,0.07,8,12);this.wheels=[];[[0,0.25,-1],[0,0.25,1]].forEach(function(p){var w=new THREE.Group();w.add(new THREE.Mesh(wg,dm));w.position.set(p[0],p[1],p[2]);w.rotation.y=Math.PI/2;self.group.add(w);self.wheels.push(w)})};
-PlayerCar.prototype.buildTruck=function(c,s){this.clearGroup();this.group.scale.setScalar(s||1);var bm=mkMat(c,0.4,0.5),gm=new THREE.MeshStandardMaterial({color:0x88bbee,roughness:0.1,metalness:0.3,transparent:true,opacity:0.45}),dm=mkMat(0x111111,0.9),ch=mkMat(0xcccccc,0.1,0.9),hl=mkBasic(0xffffee),tl=mkBasic(0xff1111);var self=this;this.group.add(this.addMesh(new THREE.BoxGeometry(2,0.8,3),bm,0,0.6,0.8,true));this.group.add(this.addMesh(new THREE.BoxGeometry(2,0.6,0.08),bm,0,1,-0.7));this.group.add(this.addMesh(new THREE.BoxGeometry(2,0.6,0.08),bm,0,1,2.3));this.group.add(this.addMesh(new THREE.BoxGeometry(0.08,0.6,3),bm,-1,1,0.8));this.group.add(this.addMesh(new THREE.BoxGeometry(0.08,0.6,3),bm,1,1,0.8));this.group.add(this.addMesh(new THREE.BoxGeometry(1.9,0.7,1.6),bm,0,0.7,-1.6));var ws=this.addMesh(new THREE.BoxGeometry(1.7,0.5,0.08),gm,0,0.85,-2.4);ws.rotation.x=-0.25;this.group.add(ws);this.group.add(this.addMesh(new THREE.BoxGeometry(2.1,0.2,0.15),ch,0,0.2,-2.45));[-1,1].forEach(function(ss){self.group.add(self.addMesh(new THREE.BoxGeometry(0.3,0.15,0.06),hl,ss*0.8,0.35,-2.45));self.group.add(self.addMesh(new THREE.BoxGeometry(0.25,0.12,0.06),tl,ss*0.8,0.35,2.35))});this.buildWheels(bm,dm)};
-PlayerCar.prototype.buildBus=function(c,s){this.clearGroup();this.group.scale.setScalar(s||1);var bm=mkMat(c,0.35,0.5),gm=new THREE.MeshStandardMaterial({color:0x88bbee,roughness:0.1,metalness:0.3,transparent:true,opacity:0.4}),dm=mkMat(0x111111,0.9),ch=mkMat(0xcccccc,0.1,0.9),hl=mkBasic(0xffffee),tl=mkBasic(0xff1111);var self=this;this.group.add(this.addMesh(new THREE.BoxGeometry(2,0.9,5.5),bm,0,0.65,0,true));this.group.add(this.addMesh(new THREE.BoxGeometry(1.95,0.1,5.4),bm,0,1.15,0));var ws=this.addMesh(new THREE.BoxGeometry(1.8,0.6,0.08),gm,0,0.8,-2.75);ws.rotation.x=-0.15;this.group.add(ws);[-1,1].forEach(function(ss){for(var i=0;i<4;i++){self.group.add(self.addMesh(new THREE.BoxGeometry(0.06,0.35,0.5),gm,ss*1.01,0.8,-1.5+i*1.2))}});this.group.add(this.addMesh(new THREE.BoxGeometry(2.1,0.15,0.12),ch,0,0.2,-2.78));[-1,1].forEach(function(ss){self.group.add(self.addMesh(new THREE.BoxGeometry(0.35,0.15,0.06),hl,ss*0.8,0.4,-2.78));self.group.add(self.addMesh(new THREE.BoxGeometry(0.3,0.12,0.06),tl,ss*0.8,0.4,2.78))});this.buildWheels(bm,dm)};
-PlayerCar.prototype.buildSpecial=function(c,s){this.clearGroup();this.group.scale.setScalar(s||1);var bm=mkMat(c,0.15,0.9),gm=new THREE.MeshStandardMaterial({color:0x88bbee,roughness:0.05,metalness:0.4,transparent:true,opacity:0.4}),dm=mkMat(0x111111,0.9),ch=mkMat(0xdddddd,0.05,0.95),hl=mkBasic(0xffffee),tl=mkBasic(0xff1111);var self=this;this.group.add(this.addMesh(new THREE.BoxGeometry(1.8,0.25,4.2),bm,0,0.22,0,true));this.group.add(this.addMesh(new THREE.BoxGeometry(1.6,0.1,1.6),bm,0,0.38,-0.8));var ws=this.addMesh(new THREE.BoxGeometry(1.4,0.25,0.06),gm,0,0.48,-0.5);ws.rotation.x=-0.4;this.group.add(ws);this.group.add(this.addMesh(new THREE.BoxGeometry(1.9,0.1,0.1),ch,0,0.15,-2.15));this.group.add(this.addMesh(new THREE.BoxGeometry(1.9,0.1,0.1),ch,0,0.15,2.15));[-1,1].forEach(function(ss){self.group.add(self.addMesh(new THREE.BoxGeometry(0.35,0.1,0.06),hl,ss*0.7,0.25,-2.12));self.group.add(self.addMesh(new THREE.BoxGeometry(0.3,0.08,0.06),tl,ss*0.7,0.25,2.12))});this.buildWheels(bm,dm)};
+PlayerCar.prototype.buildWheels=function(bm,dm){var rm=mkMat(0xcccccc,0.1,0.9),spokeMat=mkMat(0x999999,0.2,0.8);this.wheels=[];[[-1,0.15,-1.4],[1,0.15,-1.4],[-1,0.15,1.4],[1,0.15,1.4]].forEach(function(p){var w=new THREE.Group();var tire=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.3,0.2,16),dm);tire.rotation.x=Math.PI/2;w.add(tire);var rim=new THREE.Mesh(new THREE.CylinderGeometry(0.2,0.2,0.22,12),rm);rim.rotation.x=Math.PI/2;w.add(rim);for(var s=0;s<5;s++){var spoke=new THREE.Mesh(new THREE.BoxGeometry(0.03,0.16,0.02),spokeMat);spoke.rotation.z=(s/5)*Math.PI*2;w.add(spoke)}var hub=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,0.24,8),rm);hub.rotation.x=Math.PI/2;w.add(hub);w.position.set(p[0],p[1],p[2]);this.group.add(w);this.wheels.push(w)}.bind(this))};
+PlayerCar.prototype.buildDefault=function(){this.clearGroup();this.group.scale.setScalar(1);var bm=mkMat(0xcc1111,0.12,0.9),gm=new THREE.MeshStandardMaterial({color:0x88bbee,roughness:0.05,metalness:0.4,transparent:true,opacity:0.5,envMapIntensity:1.5}),ch=mkMat(0xdddddd,0.03,0.97),dm=mkMat(0x111111,0.9),hl=mkBasic(0xffffee),tl=mkBasic(0xff1111),cm=mkMat(0xcccccc,0.05,0.95);var self=this;
+this.group.add(this.addMesh(new THREE.BoxGeometry(1.85,0.35,4.6),bm,0,0.28,0,true));
+this.group.add(this.addMesh(new THREE.BoxGeometry(1.75,0.12,1.4),bm,0,0.52,-1.2));
+this.group.add(this.addMesh(new THREE.BoxGeometry(1.75,0.15,1),bm,0,0.53,1.4));
+var cabin=new THREE.Mesh(new THREE.BoxGeometry(1.65,0.35,1.9),gm);cabin.position.set(0,0.64,0);this.group.add(cabin);
+var ws=this.addMesh(new THREE.BoxGeometry(1.6,0.32,0.08),gm,0,0.7,-0.95);ws.rotation.x=-0.35;this.group.add(ws);
+var rw=this.addMesh(new THREE.BoxGeometry(1.55,0.28,0.08),gm,0,0.68,0.95);rw.rotation.x=0.3;this.group.add(rw);
+this.group.add(this.addMesh(new THREE.BoxGeometry(1.9,0.18,0.12),ch,0,0.22,-2.35));
+this.group.add(this.addMesh(new THREE.BoxGeometry(1.9,0.18,0.12),ch,0,0.22,2.35));
+var grille=new THREE.Mesh(new THREE.BoxGeometry(1.2,0.2,0.05),cm);grille.position.set(0,0.28,-2.35);this.group.add(grille);
+[-1,1].forEach(function(ss){
+var mirror=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.08,0.15),dm);mirror.position.set(ss*1.0,0.65,-0.3);self.group.add(mirror);
+var stalk=new THREE.Mesh(new THREE.BoxGeometry(0.04,0.04,0.2),cm);stalk.position.set(ss*0.95,0.62,-0.2);self.group.add(stalk);
+self.group.add(self.addMesh(new THREE.BoxGeometry(0.3,0.14,0.12),hl,ss*0.72,0.32,-2.36));
+self.group.add(self.addMesh(new THREE.BoxGeometry(0.25,0.12,0.12),tl,ss*0.75,0.35,2.36));
+self.group.add(self.addMesh(new THREE.BoxGeometry(0.06,0.12,3.6),bm,ss*0.95,0.15,0));
+self.group.add(self.addMesh(new THREE.BoxGeometry(0.15,0.08,0.08),cm,ss*0.85,0.22,2.42));
+var exPipe=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,0.2,6),cm);exPipe.rotation.x=Math.PI/2;exPipe.position.set(ss*0.4,0.15,2.45);self.group.add(exPipe);
+var arch=new THREE.Mesh(new THREE.BoxGeometry(0.15,0.35,0.5),bm);arch.position.set(ss*0.92,0.35,-1.4);self.group.add(arch);
+var arch2=new THREE.Mesh(new THREE.BoxGeometry(0.15,0.35,0.5),bm);arch2.position.set(ss*0.92,0.35,1.4);self.group.add(arch2)});
+this.buildWheels(bm,dm)};
+PlayerCar.prototype.buildCar=function(c,s){this.clearGroup();this.group.scale.setScalar(s||1);var bm=mkMat(c,0.12,0.9),gm=new THREE.MeshStandardMaterial({color:0x88bbee,roughness:0.05,metalness:0.4,transparent:true,opacity:0.5,envMapIntensity:1.5}),ch=mkMat(0xdddddd,0.03,0.97),dm=mkMat(0x111111,0.9),hl=mkBasic(0xffffee),tl=mkBasic(0xff1111),cm=mkMat(0xcccccc,0.05,0.95);var self=this;
+this.group.add(this.addMesh(new THREE.BoxGeometry(1.85,0.35,4.6),bm,0,0.28,0,true));
+this.group.add(this.addMesh(new THREE.BoxGeometry(1.75,0.12,1.4),bm,0,0.52,-1.2));
+this.group.add(this.addMesh(new THREE.BoxGeometry(1.75,0.15,1),bm,0,0.53,1.4));
+this.group.add(this.addMesh(new THREE.BoxGeometry(1.65,0.35,1.9),gm,0,0.64,0));
+var ws=this.addMesh(new THREE.BoxGeometry(1.6,0.32,0.08),gm,0,0.7,-0.95);ws.rotation.x=-0.35;this.group.add(ws);
+var rw=this.addMesh(new THREE.BoxGeometry(1.55,0.28,0.08),gm,0,0.68,0.95);rw.rotation.x=0.3;this.group.add(rw);
+this.group.add(this.addMesh(new THREE.BoxGeometry(1.9,0.18,0.12),ch,0,0.22,-2.35));
+this.group.add(this.addMesh(new THREE.BoxGeometry(1.9,0.18,0.12),ch,0,0.22,2.35));
+var grille=new THREE.Mesh(new THREE.BoxGeometry(1.2,0.2,0.05),cm);grille.position.set(0,0.28,-2.35);this.group.add(grille);
+[-1,1].forEach(function(ss){
+var mirror=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.08,0.15),dm);mirror.position.set(ss*1.0,0.65,-0.3);self.group.add(mirror);
+var stalk=new THREE.Mesh(new THREE.BoxGeometry(0.04,0.04,0.2),cm);stalk.position.set(ss*0.95,0.62,-0.2);self.group.add(stalk);
+self.group.add(self.addMesh(new THREE.BoxGeometry(0.3,0.14,0.12),hl,ss*0.72,0.32,-2.36));
+self.group.add(self.addMesh(new THREE.BoxGeometry(0.25,0.12,0.12),tl,ss*0.75,0.35,2.36));
+self.group.add(self.addMesh(new THREE.BoxGeometry(0.06,0.12,3.6),bm,ss*0.95,0.15,0));
+self.group.add(self.addMesh(new THREE.BoxGeometry(0.15,0.08,0.08),cm,ss*0.85,0.22,2.42));
+var exPipe=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,0.2,6),cm);exPipe.rotation.x=Math.PI/2;exPipe.position.set(ss*0.4,0.15,2.45);self.group.add(exPipe);
+var arch=new THREE.Mesh(new THREE.BoxGeometry(0.15,0.35,0.5),bm);arch.position.set(ss*0.92,0.35,-1.4);self.group.add(arch);
+var arch2=new THREE.Mesh(new THREE.BoxGeometry(0.15,0.35,0.5),bm);arch2.position.set(ss*0.92,0.35,1.4);self.group.add(arch2)});
+this.buildWheels(bm,dm)};
+PlayerCar.prototype.buildBike=function(c,s){this.clearGroup();this.group.scale.setScalar(s||1);var bm=mkMat(c,0.3,0.7),ch=mkMat(0xdddddd,0.05,0.95),dm=mkMat(0x111111,0.9),hl=mkBasic(0xffffee),tl=mkBasic(0xff1111),cm=mkMat(0xcccccc,0.05,0.95);var self=this;
+this.group.add(this.addMesh(new THREE.BoxGeometry(0.4,0.3,2.2),bm,0,0.5,0,true));
+this.group.add(this.addMesh(new THREE.BoxGeometry(0.35,0.12,0.6),dm,0,0.7,0.2));
+this.group.add(this.addMesh(new THREE.BoxGeometry(0.45,0.25,0.7),bm,0,0.65,-0.4));
+var tank=new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.18,0.6,8),bm);tank.rotation.z=Math.PI/2;tank.position.set(0,0.62,-0.3);this.group.add(tank);
+var seat=new THREE.Mesh(new THREE.BoxGeometry(0.28,0.06,0.5),dm);seat.position.set(0,0.78,0.1);this.group.add(seat);
+var fork=new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,0.7,4),cm);fork.position.set(0,0.45,-0.9);fork.rotation.x=0.15;this.group.add(fork);
+this.group.add(this.addMesh(new THREE.BoxGeometry(0.7,0.06,0.06),ch,0,0.78,-0.95));
+this.group.add(this.addMesh(new THREE.BoxGeometry(0.18,0.12,0.1),hl,0,0.65,-1.2));
+this.group.add(this.addMesh(new THREE.BoxGeometry(0.12,0.08,0.1),tl,0,0.55,1.2));
+this.group.add(this.addMesh(new THREE.CylinderGeometry(0.03,0.03,0.8,6),ch,0.2,0.3,0.3));
+var exPipe=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.04,0.8,6),cm);exPipe.rotation.x=Math.PI/2;exPipe.position.set(0.15,0.35,0.5);this.group.add(exPipe);
+var wg=new THREE.TorusGeometry(0.25,0.07,8,12);this.wheels=[];[[0,0.25,-1],[0,0.25,1]].forEach(function(p){var w=new THREE.Group();w.add(new THREE.Mesh(wg,dm));w.position.set(p[0],p[1],p[2]);w.rotation.y=Math.PI/2;self.group.add(w);self.wheels.push(w)})};
+PlayerCar.prototype.buildTruck=function(c,s){this.clearGroup();this.group.scale.setScalar(s||1);var bm=mkMat(c,0.4,0.5),gm=new THREE.MeshStandardMaterial({color:0x88bbee,roughness:0.1,metalness:0.3,transparent:true,opacity:0.45}),dm=mkMat(0x111111,0.9),ch=mkMat(0xcccccc,0.1,0.9),hl=mkBasic(0xffffee),tl=mkBasic(0xff1111),cm=mkMat(0x888888,0.3,0.7);var self=this;
+this.group.add(this.addMesh(new THREE.BoxGeometry(2,0.8,3),bm,0,0.6,0.8,true));
+this.group.add(this.addMesh(new THREE.BoxGeometry(2,0.6,0.08),bm,0,1,-0.7));
+this.group.add(this.addMesh(new THREE.BoxGeometry(2,0.6,0.08),bm,0,1,2.3));
+this.group.add(this.addMesh(new THREE.BoxGeometry(0.08,0.6,3),bm,-1,1,0.8));
+this.group.add(this.addMesh(new THREE.BoxGeometry(0.08,0.6,3),bm,1,1,0.8));
+this.group.add(this.addMesh(new THREE.BoxGeometry(1.9,0.7,1.6),bm,0,0.7,-1.6));
+var ws=this.addMesh(new THREE.BoxGeometry(1.7,0.5,0.08),gm,0,0.85,-2.4);ws.rotation.x=-0.25;this.group.add(ws);
+this.group.add(this.addMesh(new THREE.BoxGeometry(2.1,0.2,0.15),ch,0,0.2,-2.45));
+var bumper=new THREE.Mesh(new THREE.BoxGeometry(2.1,0.15,0.1),cm);bumper.position.set(0,0.15,-2.5);this.group.add(bumper);
+var exhaust=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,0.3,6),cm);exhaust.rotation.x=Math.PI/2;exhaust.position.set(0.7,0.2,2.4);this.group.add(exhaust);
+[-1,1].forEach(function(ss){
+var mirror=new THREE.Mesh(new THREE.BoxGeometry(0.15,0.1,0.12),dm);mirror.position.set(ss*1.15,0.85,-1.5);self.group.add(mirror);
+self.group.add(self.addMesh(new THREE.BoxGeometry(0.3,0.15,0.1),hl,ss*0.8,0.35,-2.46));
+self.group.add(self.addMesh(new THREE.BoxGeometry(0.25,0.12,0.1),tl,ss*0.8,0.35,2.36));
+var arch=new THREE.Mesh(new THREE.BoxGeometry(0.15,0.4,0.5),bm);arch.position.set(ss*1.02,0.35,-1.5);self.group.add(arch);
+var arch2=new THREE.Mesh(new THREE.BoxGeometry(0.15,0.4,0.5),bm);arch2.position.set(ss*1.02,0.35,1.8);self.group.add(arch2)});
+this.buildWheels(bm,dm)};
+PlayerCar.prototype.buildBus=function(c,s){this.clearGroup();this.group.scale.setScalar(s||1);var bm=mkMat(c,0.35,0.5),gm=new THREE.MeshStandardMaterial({color:0x88bbee,roughness:0.1,metalness:0.3,transparent:true,opacity:0.4}),dm=mkMat(0x111111,0.9),ch=mkMat(0xcccccc,0.1,0.9),hl=mkBasic(0xffffee),tl=mkBasic(0xff1111),cm=mkMat(0xcccccc,0.05,0.95);var self=this;
+this.group.add(this.addMesh(new THREE.BoxGeometry(2,0.9,5.5),bm,0,0.65,0,true));
+this.group.add(this.addMesh(new THREE.BoxGeometry(1.95,0.1,5.4),bm,0,1.15,0));
+var ws=this.addMesh(new THREE.BoxGeometry(1.8,0.6,0.08),gm,0,0.8,-2.75);ws.rotation.x=-0.15;this.group.add(ws);
+[-1,1].forEach(function(ss){for(var i=0;i<4;i++){self.group.add(self.addMesh(new THREE.BoxGeometry(0.06,0.35,0.5),gm,ss*1.01,0.8,-1.5+i*1.2))}});
+var stripe=new THREE.Mesh(new THREE.BoxGeometry(2.02,0.08,5.52),cm);stripe.position.set(0,0.75,0);this.group.add(stripe);
+this.group.add(this.addMesh(new THREE.BoxGeometry(2.1,0.15,0.12),ch,0,0.2,-2.78));
+var bumper=new THREE.Mesh(new THREE.BoxGeometry(2.15,0.12,0.08),cm);bumper.position.set(0,0.15,-2.8);this.group.add(bumper);
+[-1,1].forEach(function(ss){
+var mirror=new THREE.Mesh(new THREE.BoxGeometry(0.18,0.12,0.15),dm);mirror.position.set(ss*1.15,0.95,-2.5);self.group.add(mirror);
+self.group.add(self.addMesh(new THREE.BoxGeometry(0.35,0.15,0.1),hl,ss*0.8,0.4,-2.79));
+self.group.add(self.addMesh(new THREE.BoxGeometry(0.3,0.12,0.1),tl,ss*0.8,0.4,2.79))});
+this.buildWheels(bm,dm)};
+PlayerCar.prototype.buildSpecial=function(c,s){this.clearGroup();this.group.scale.setScalar(s||1);var bm=mkMat(c,0.15,0.9),gm=new THREE.MeshStandardMaterial({color:0x88bbee,roughness:0.05,metalness:0.4,transparent:true,opacity:0.4}),dm=mkMat(0x111111,0.9),ch=mkMat(0xdddddd,0.05,0.95),hl=mkBasic(0xffffee),tl=mkBasic(0xff1111),cm=mkMat(0xcccccc,0.05,0.95);var self=this;
+this.group.add(this.addMesh(new THREE.BoxGeometry(1.8,0.25,4.2),bm,0,0.22,0,true));
+this.group.add(this.addMesh(new THREE.BoxGeometry(1.6,0.1,1.6),bm,0,0.38,-0.8));
+var ws=this.addMesh(new THREE.BoxGeometry(1.4,0.25,0.06),gm,0,0.48,-0.5);ws.rotation.x=-0.4;this.group.add(ws);
+var nose=new THREE.Mesh(new THREE.BoxGeometry(1.0,0.15,0.8),bm);nose.position.set(0,0.25,-1.8);this.group.add(nose);
+var wing=new THREE.Mesh(new THREE.BoxGeometry(1.9,0.06,0.3),bm);wing.position.set(0,0.45,1.8);this.group.add(wing);
+var wingS=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.2,0.3),bm);wingS.position.set(-0.95,0.38,1.8);this.group.add(wingS);
+var wingS2=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.2,0.3),bm);wingS2.position.set(0.95,0.38,1.8);this.group.add(wingS2);
+this.group.add(this.addMesh(new THREE.BoxGeometry(1.9,0.1,0.1),ch,0,0.15,-2.15));
+this.group.add(this.addMesh(new THREE.BoxGeometry(1.9,0.1,0.1),ch,0,0.15,2.15));
+var exPipe=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.05,0.3,6),cm);exPipe.rotation.x=Math.PI/2;exPipe.position.set(0,0.18,2.1);this.group.add(exPipe);
+[-1,1].forEach(function(ss){
+self.group.add(self.addMesh(new THREE.BoxGeometry(0.35,0.1,0.1),hl,ss*0.7,0.25,-2.13));
+self.group.add(self.addMesh(new THREE.BoxGeometry(0.3,0.08,0.1),tl,ss*0.7,0.25,2.13));
+var arch=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.3,0.5),bm);arch.position.set(ss*0.92,0.28,-1);self.group.add(arch);
+var arch2=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.3,0.5),bm);arch2.position.set(ss*0.92,0.28,1);self.group.add(arch2)});
+this.buildWheels(bm,dm)};
 PlayerCar.prototype.applyVehicle=function(v){try{var c=0xcc1111,sc=v.scale||1;if(v.cat==='bikes')this.buildBike(c,sc);else if(v.cat==='trucks')this.buildTruck(c,sc);else if(v.cat==='buses')this.buildBus(c,sc);else if(v.cat==='special')this.buildSpecial(c,sc);else this.buildCar(c,sc);this.maxHealth=v.hp||100;this.health=this.maxHealth}catch(e){}};
 PlayerCar.prototype.switchLane=function(d){var nl=Math.max(0,Math.min(2,this.currentLane+d));if(nl!==this.currentLane){this.currentLane=nl;this.targetX=LANE_POSITIONS[nl]}};
 PlayerCar.prototype.update=function(dt){var diff=this.targetX-this.x;if(Math.abs(diff)>0.005){this.x+=Math.sign(diff)*Math.min(Math.abs(diff),this.laneSwitchSpeed*dt);this.steerAngle+=(Math.sign(diff)*0.15-this.steerAngle)*0.15}else{this.x=this.targetX;this.steerAngle*=0.85}this.group.position.x=this.x;this.group.position.y=0.5+Math.sin(performance.now()*0.005)*0.01;this.group.rotation.z=-this.steerAngle*0.08;for(var i=0;i<this.wheels.length;i++)this.wheels[i].rotation.z+=dt*15;this.updateFire(dt);if(this.invincible){this.invincibleTimer-=dt;if(this.invincibleTimer<=0){this.invincible=false;this.group.visible=true}else{this.group.visible=Math.floor(this.invincibleTimer*12)%2===0}}};
@@ -269,15 +366,80 @@ var TCOLORS=[0x2255aa,0x44aa33,0xaa2244,0x887733,0x6633aa,0x228888,0xaa5522,0x88
 var _twg=new THREE.CylinderGeometry(0.28,0.28,0.16,10),_twm=new THREE.MeshStandardMaterial({color:0x1a1a1a,roughness:0.9}),_tgm=new THREE.MeshStandardMaterial({color:0x88bbee,roughness:0.1,metalness:0.3,transparent:true,opacity:0.4}),_tcm=new THREE.MeshStandardMaterial({color:0xcccccc,roughness:0.05,metalness:0.95}),_thlm=new THREE.MeshBasicMaterial({color:0xffffee}),_ttlm=new THREE.MeshBasicMaterial({color:0xff1111});
 function tA(g,geo,mat,x,y,z,sh){var m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);if(sh)m.castShadow=true;g.add(m);return m}
 function tW(g,pos){pos.forEach(function(p){var w=new THREE.Mesh(_twg,_twm);w.rotation.x=Math.PI/2;w.position.set(p[0],p[1],p[2]);g.add(w)})}
-function makeSedan(c){var g=new THREE.Group(),m=mkMat(c,0.2,0.75);tA(g,new THREE.BoxGeometry(1.8,0.32,4.2),m,0,0.26,0,true);tA(g,new THREE.BoxGeometry(1.7,0.1,1.3),m,0,0.48,-1.1);tA(g,new THREE.BoxGeometry(1.7,0.12,0.9),m,0,0.49,1.3);tA(g,new THREE.BoxGeometry(1.55,0.3,1.8),_tgm,0,0.6,0);tA(g,new THREE.BoxGeometry(1.85,0.15,0.08),_tcm,0,0.2,-2.12);[-1,1].forEach(function(s){tA(g,new THREE.BoxGeometry(0.28,0.12,0.05),_thlm,s*0.7,0.32,-2.1);tA(g,new THREE.BoxGeometry(0.22,0.1,0.05),_ttlm,s*0.72,0.32,2.1)});tW(g,[[-0.95,0.14,-1.3],[0.95,0.14,-1.3],[-0.95,0.14,1.3],[0.95,0.14,1.3]]);return g}
-function makeSUV(c){var g=new THREE.Group(),m=mkMat(c,0.25,0.7);tA(g,new THREE.BoxGeometry(1.9,0.4,4.5),m,0,0.32,0,true);tA(g,new THREE.BoxGeometry(1.7,0.38,2.6),_tgm,0,0.72,0);tA(g,new THREE.BoxGeometry(1.65,0.06,2.4),m,0,0.92,0);tA(g,new THREE.BoxGeometry(1.95,0.18,0.08),_tcm,0,0.24,-2.28);[-1,1].forEach(function(s){tA(g,new THREE.BoxGeometry(0.3,0.14,0.05),_thlm,s*0.72,0.38,-2.26);tA(g,new THREE.BoxGeometry(0.24,0.1,0.05),_ttlm,s*0.74,0.38,2.26)});tW(g,[[-1,0.18,-1.4],[1,0.18,-1.4],[-1,0.18,1.4],[1,0.18,1.4]]);return g}
-function makeTruckT(c){var g=new THREE.Group(),cm=mkMat(c,0.3,0.6);var cargo=new THREE.Mesh(new THREE.BoxGeometry(2,1.2,3),mkMat(0x667788,0.5));cargo.position.set(0,0.8,1);cargo.castShadow=true;g.add(cargo);tA(g,new THREE.BoxGeometry(2,0.6,1.6),cm,0,0.6,-1.4,true);tA(g,new THREE.BoxGeometry(1.8,0.3,1.2),_tgm,0,0.95,-1.3);[-1,1].forEach(function(s){tA(g,new THREE.BoxGeometry(0.3,0.16,0.06),_thlm,s*0.75,0.35,-2.2);tA(g,new THREE.BoxGeometry(0.2,0.12,0.06),_ttlm,s*0.8,0.55,2.52)});tW(g,[[-1.05,0.2,-1.5],[1.05,0.2,-1.5],[-1.05,0.2,1.8],[1.05,0.2,1.8]]);return g}
-function makeBusT(c){var g=new THREE.Group(),m=mkMat(c,0.35,0.5);tA(g,new THREE.BoxGeometry(2,1.1,5.5),m,0,0.75,0,true);for(var i=-2;i<=2;i++)[-1,1].forEach(function(s){tA(g,new THREE.BoxGeometry(0.04,0.3,0.5),_tgm,s*1.02,0.9,i)});tA(g,new THREE.BoxGeometry(2,0.2,0.1),_tcm,0,0.35,-2.77);[-1,1].forEach(function(s){tA(g,new THREE.BoxGeometry(0.3,0.14,0.05),_thlm,s*0.7,0.4,-2.76);tA(g,new THREE.BoxGeometry(0.2,0.1,0.05),_ttlm,s*0.75,0.4,2.76)});tW(g,[[-1.05,0.22,-1.8],[1.05,0.22,-1.8],[-1.05,0.22,1.8],[1.05,0.22,1.8]]);return g}
+function makeSedan(c){var g=new THREE.Group(),m=mkMat(c,0.2,0.75),cm=mkMat(0xcccccc,0.05,0.95);
+tA(g,new THREE.BoxGeometry(1.8,0.32,4.2),m,0,0.26,0,true);
+tA(g,new THREE.BoxGeometry(1.7,0.1,1.3),m,0,0.48,-1.1);
+tA(g,new THREE.BoxGeometry(1.7,0.12,0.9),m,0,0.49,1.3);
+tA(g,new THREE.BoxGeometry(1.55,0.3,1.8),_tgm,0,0.6,0);
+tA(g,new THREE.BoxGeometry(1.85,0.15,0.08),_tcm,0,0.2,-2.12);
+tA(g,new THREE.BoxGeometry(1.2,0.12,0.04),cm,0,0.28,-2.14);
+[-1,1].forEach(function(s){
+tA(g,new THREE.BoxGeometry(0.28,0.12,0.1),_thlm,s*0.7,0.32,-2.12);
+tA(g,new THREE.BoxGeometry(0.22,0.1,0.1),_ttlm,s*0.72,0.32,2.12);
+var mir=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.07,0.12),mkMat(0x111111,0.9));mir.position.set(s*1.0,0.55,-0.5);g.add(mir);
+var ex=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.04,0.15,6),cm);ex.rotation.x=Math.PI/2;ex.position.set(s*0.35,0.15,2.15);g.add(ex);
+var arch=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.3,0.45),m);arch.position.set(s*0.92,0.3,-1.3);g.add(arch);
+var arch2=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.3,0.45),m);arch2.position.set(s*0.92,0.3,1.3);g.add(arch2)});
+tW(g,[[-0.95,0.14,-1.3],[0.95,0.14,-1.3],[-0.95,0.14,1.3],[0.95,0.14,1.3]]);return g}
+function makeSUV(c){var g=new THREE.Group(),m=mkMat(c,0.25,0.7),cm=mkMat(0xcccccc,0.05,0.95);
+tA(g,new THREE.BoxGeometry(1.9,0.4,4.5),m,0,0.32,0,true);
+tA(g,new THREE.BoxGeometry(1.7,0.38,2.6),_tgm,0,0.72,0);
+tA(g,new THREE.BoxGeometry(1.65,0.06,2.4),m,0,0.92,0);
+tA(g,new THREE.BoxGeometry(1.95,0.18,0.08),_tcm,0,0.24,-2.28);
+tA(g,new THREE.BoxGeometry(1.3,0.14,0.04),cm,0,0.32,-2.3);
+var rack=new THREE.Mesh(new THREE.BoxGeometry(1.2,0.04,0.8),cm);rack.position.set(0,0.96,0);g.add(rack);
+[-1,1].forEach(function(s){
+tA(g,new THREE.BoxGeometry(0.3,0.14,0.1),_thlm,s*0.72,0.38,-2.28);
+tA(g,new THREE.BoxGeometry(0.24,0.1,0.1),_ttlm,s*0.74,0.38,2.28);
+var mir=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.08,0.14),mkMat(0x111111,0.9));mir.position.set(s*1.05,0.65,-0.6);g.add(mir);
+var ex=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,0.15,6),cm);ex.rotation.x=Math.PI/2;ex.position.set(s*0.5,0.18,2.3);g.add(ex);
+var arch=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.35,0.5),m);arch.position.set(s*0.98,0.32,-1.4);g.add(arch);
+var arch2=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.35,0.5),m);arch2.position.set(s*0.98,0.32,1.4);g.add(arch2)});
+tW(g,[[-1,0.18,-1.4],[1,0.18,-1.4],[-1,0.18,1.4],[1,0.18,1.4]]);return g}
+function makeTruckT(c){var g=new THREE.Group(),cm=mkMat(c,0.3,0.6),chrm=mkMat(0xcccccc,0.05,0.95);
+var cargo=new THREE.Mesh(new THREE.BoxGeometry(2,1.2,3),mkMat(0x667788,0.5));cargo.position.set(0,0.8,1);cargo.castShadow=true;g.add(cargo);
+tA(g,new THREE.BoxGeometry(2,0.6,1.6),cm,0,0.6,-1.4,true);
+tA(g,new THREE.BoxGeometry(1.8,0.3,1.2),_tgm,0,0.95,-1.3);
+tA(g,new THREE.BoxGeometry(2.05,0.12,0.06),chrm,0,0.2,-2.22);
+tA(g,new THREE.BoxGeometry(1.4,0.1,0.04),chrm,0,0.3,-2.24);
+[-1,1].forEach(function(s){
+tA(g,new THREE.BoxGeometry(0.3,0.16,0.1),_thlm,s*0.75,0.35,-2.22);
+tA(g,new THREE.BoxGeometry(0.2,0.12,0.1),_ttlm,s*0.8,0.55,2.52);
+var mir=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.1,0.12),mkMat(0x111111,0.9));mir.position.set(s*1.15,0.75,-1.2);g.add(mir);
+var arch=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.4,0.5),cm);arch.position.set(s*1.05,0.35,-1.5);g.add(arch);
+var arch2=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.4,0.5),cm);arch2.position.set(s*1.05,0.35,1.8);g.add(arch2)});
+tW(g,[[-1.05,0.2,-1.5],[1.05,0.2,-1.5],[-1.05,0.2,1.8],[1.05,0.2,1.8]]);return g}
+function makeBusT(c){var g=new THREE.Group(),m=mkMat(c,0.35,0.5),chrm=mkMat(0xcccccc,0.05,0.95);
+tA(g,new THREE.BoxGeometry(2,1.1,5.5),m,0,0.75,0,true);
+for(var i=-2;i<=2;i++)[-1,1].forEach(function(s){tA(g,new THREE.BoxGeometry(0.04,0.3,0.5),_tgm,s*1.02,0.9,i)});
+var stripe=new THREE.Mesh(new THREE.BoxGeometry(2.02,0.08,5.52),chrm);stripe.position.set(0,0.75,0);g.add(stripe);
+tA(g,new THREE.BoxGeometry(2,0.2,0.1),_tcm,0,0.35,-2.77);
+tA(g,new THREE.BoxGeometry(1.4,0.12,0.04),chrm,0,0.4,-2.79);
+[-1,1].forEach(function(s){
+tA(g,new THREE.BoxGeometry(0.3,0.14,0.1),_thlm,s*0.7,0.4,-2.78);
+tA(g,new THREE.BoxGeometry(0.2,0.1,0.1),_ttlm,s*0.75,0.4,2.78);
+var mir=new THREE.Mesh(new THREE.BoxGeometry(0.15,0.1,0.12),mkMat(0x111111,0.9));mir.position.set(s*1.15,0.95,-2.5);g.add(mir)});
+tW(g,[[-1.05,0.22,-1.8],[1.05,0.22,-1.8],[-1.05,0.22,1.8],[1.05,0.22,1.8]]);return g}
 function makeBikeT(c){var g=new THREE.Group(),m=mkMat(c,0.3,0.7);tA(g,new THREE.BoxGeometry(0.4,0.3,1.8),m,0,0.5,0);tA(g,new THREE.BoxGeometry(0.35,0.25,0.6),_tgm,0,0.7,-0.2);tA(g,new THREE.BoxGeometry(0.6,0.08,0.8),m,0,0.35,0);tW(g,[[-0.3,0.2,-0.7],[0.3,0.2,-0.7],[-0.3,0.2,0.7],[0.3,0.2,0.7]]);return g}
 function makeSBike(c){var g=new THREE.Group(),m=mkMat(c,0.2,0.8);tA(g,new THREE.BoxGeometry(0.45,0.25,2),m,0,0.55,0);tA(g,new THREE.BoxGeometry(0.4,0.3,0.5),_tgm,0,0.75,-0.4);tA(g,new THREE.BoxGeometry(0.5,0.06,0.4),m,0,0.35,0);tA(g,new THREE.BoxGeometry(0.08,0.15,0.8),_tcm,0,0.45,-0.3);var wg=new THREE.CylinderGeometry(0.32,0.32,0.08,10);[[-0.25,0.2,-0.8],[0.25,0.2,-0.8],[-0.25,0.2,0.8],[0.25,0.2,0.8]].forEach(function(p){var w=new THREE.Mesh(wg,_twm);w.rotation.x=Math.PI/2;w.position.set(p[0],p[1],p[2]);g.add(w)});return g}
 function makeBikeC(c){var g=new THREE.Group(),m=mkMat(c,0.4,0.6);var fg=new THREE.CylinderGeometry(0.04,0.04,1.2,4);var f1=new THREE.Mesh(fg,m);f1.position.set(0,0.55,0);f1.rotation.x=0.4;g.add(f1);var f2=new THREE.Mesh(fg,m);f2.position.set(0,0.55,0);f2.rotation.x=-0.4;g.add(f2);tA(g,new THREE.BoxGeometry(0.3,0.05,0.15),m,0,0.85,-0.2);var wg=new THREE.TorusGeometry(0.28,0.03,6,12);[[0,0.28,-0.55],[0,0.28,0.55]].forEach(function(p){var w=new THREE.Mesh(wg,_twm);w.position.set(p[0],p[1],p[2]);w.rotation.y=Math.PI/2;g.add(w)});return g}
 function makeSemi(c){var g=new THREE.Group(),cm=mkMat(c,0.3,0.6);var tr=new THREE.Mesh(new THREE.BoxGeometry(2.2,1.5,6),mkMat(0x888888,0.5));tr.position.set(0,0.95,1.5);tr.castShadow=true;g.add(tr);tA(g,new THREE.BoxGeometry(2.2,0.7,2),cm,0,0.65,-2.3,true);tA(g,new THREE.BoxGeometry(2,0.35,1.5),_tgm,0,1.05,-2.2);[-1,1].forEach(function(s){tA(g,new THREE.BoxGeometry(0.35,0.18,0.06),_thlm,s*0.8,0.4,-3.32);tA(g,new THREE.BoxGeometry(0.25,0.14,0.06),_ttlm,s*0.85,0.6,4.52)});tW(g,[[-1.1,0.22,-2.8],[1.1,0.22,-2.8],[-1.1,0.22,2.5],[1.1,0.22,2.5],[-1.1,0.22,3.5],[1.1,0.22,3.5]]);return g}
-function makeFormula(c){var g=new THREE.Group(),m=mkMat(c,0.15,0.85);tA(g,new THREE.BoxGeometry(1.6,0.2,3.5),m,0,0.25,0,true);tA(g,new THREE.BoxGeometry(1,0.15,0.8),_tgm,0,0.42,-0.3);tA(g,new THREE.BoxGeometry(1.6,0.08,0.4),m,0,0.35,1.5);tA(g,new THREE.BoxGeometry(0.5,0.25,0.15),_tcm,0,0.3,-1.75);[-1,1].forEach(function(s){tA(g,new THREE.BoxGeometry(0.2,0.1,0.05),_thlm,s*0.6,0.28,-1.74);tA(g,new THREE.BoxGeometry(0.18,0.08,0.05),_ttlm,s*0.6,0.28,1.74)});var wg=new THREE.CylinderGeometry(0.25,0.25,0.14,10);[[-0.85,0.14,-1],[0.85,0.14,-1],[-0.85,0.14,1],[0.85,0.14,1]].forEach(function(p){var w=new THREE.Mesh(wg,_twm);w.rotation.x=Math.PI/2;w.position.set(p[0],p[1],p[2]);g.add(w)});return g}
+function makeFormula(c){var g=new THREE.Group(),m=mkMat(c,0.15,0.85),chrm=mkMat(0xcccccc,0.05,0.95);
+tA(g,new THREE.BoxGeometry(1.6,0.2,3.5),m,0,0.25,0,true);
+tA(g,new THREE.BoxGeometry(1,0.15,0.8),_tgm,0,0.42,-0.3);
+tA(g,new THREE.BoxGeometry(1.6,0.08,0.4),m,0,0.35,1.5);
+tA(g,new THREE.BoxGeometry(1.0,0.12,0.6),m,0,0.28,-1.5);
+var wing=new THREE.Mesh(new THREE.BoxGeometry(1.6,0.05,0.25),m);wing.position.set(0,0.4,1.7);g.add(wing);
+var wingS=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.15,0.25),m);wingS.position.set(-0.8,0.35,1.7);g.add(wingS);
+var wingS2=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.15,0.25),m);wingS2.position.set(0.8,0.35,1.7);g.add(wingS2);
+tA(g,new THREE.BoxGeometry(0.5,0.25,0.15),_tcm,0,0.3,-1.75);
+tA(g,new THREE.BoxGeometry(0.3,0.08,0.04),chrm,0,0.25,-1.78);
+[-1,1].forEach(function(s){
+tA(g,new THREE.BoxGeometry(0.2,0.1,0.1),_thlm,s*0.6,0.28,-1.76);
+tA(g,new THREE.BoxGeometry(0.18,0.08,0.1),_ttlm,s*0.6,0.28,1.76);
+var arch=new THREE.Mesh(new THREE.BoxGeometry(0.08,0.25,0.4),m);arch.position.set(s*0.82,0.22,-1);g.add(arch);
+var arch2=new THREE.Mesh(new THREE.BoxGeometry(0.08,0.25,0.4),m);arch2.position.set(s*0.82,0.22,1);g.add(arch2)});
+var wg=new THREE.CylinderGeometry(0.25,0.25,0.14,10);[[-0.85,0.14,-1],[0.85,0.14,-1],[-0.85,0.14,1],[0.85,0.14,1]].forEach(function(p){var w=new THREE.Mesh(wg,_twm);w.rotation.x=Math.PI/2;w.position.set(p[0],p[1],p[2]);g.add(w)});return g}
 var BUILDERS={sedan:makeSedan,suv:makeSUV,muscle:makeSedan,supercar:makeSedan,hatchback:makeSedan,pickup:makeTruckT,semi:makeSemi,tanker:makeTruckT,city_bus:makeBusT,school_bus:makeBusT,tour_bus:makeBusT,sport_bike:makeSBike,chopper:makeBikeT,dirt_bike:makeBikeT,bicycle:makeBikeC,formula:makeFormula};
 function rColor(){return TCOLORS[Math.floor(Math.random()*TCOLORS.length)]}
 
