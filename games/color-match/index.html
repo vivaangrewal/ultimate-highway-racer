@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Color Match</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;color:#fff;font-family:'Segoe UI',sans-serif;overflow:hidden;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center}
+#back{position:fixed;top:12px;left:12px;color:#0ff;text-decoration:none;font-size:14px;padding:6px 14px;border:1px solid #0ff;border-radius:4px;z-index:100;transition:.2s}
+#back:hover{background:#0ff;color:#0a0a1a}
+#header{text-align:center;margin-bottom:12px}
+#header h1{font-size:28px;color:#ff4;text-shadow:0 0 20px rgba(255,255,68,0.5)}
+.stats{display:flex;gap:16px;justify-content:center;margin-top:8px;flex-wrap:wrap}
+.stat{background:rgba(255,255,255,0.06);padding:6px 16px;border-radius:6px;text-align:center}
+.stat .label{font-size:11px;color:#aaa;text-transform:uppercase}
+.stat .val{font-size:20px;font-weight:bold;color:#ff4}
+#game-area{text-align:center}
+#color-word{font-size:72px;font-weight:bold;margin:20px 0;transition:color .1s;min-height:100px;display:flex;align-items:center;justify-content:center}
+#timer-bar{width:300px;max-width:80vw;height:8px;background:rgba(255,255,255,0.1);border-radius:4px;margin:12px auto;overflow:hidden}
+#timer-fill{height:100%;background:linear-gradient(90deg,#0f0,#ff0,#f00);border-radius:4px;transition:width .1s linear}
+.buttons{display:flex;gap:16px;justify-content:center;margin-top:16px}
+.choice-btn{
+  padding:16px 40px;font-size:20px;font-weight:bold;border:none;border-radius:8px;
+  cursor:pointer;transition:all .15s;font-family:inherit;min-width:140px
+}
+#match-btn{background:#2a8a2a;color:#fff}
+#match-btn:hover{background:#3aaa3a;transform:scale(1.05)}
+#nomatch-btn{background:#8a2a2a;color:#fff}
+#nomatch-btn:hover{background:#aa3a3a;transform:scale(1.05)}
+.choice-btn:active{transform:scale(0.95)}
+.choice-btn:disabled{opacity:0.4;cursor:not-allowed;transform:none}
+#result-flash{font-size:24px;font-weight:bold;margin:12px 0;min-height:36px}
+.flash-correct{color:#0f0}
+.flash-wrong{color:#f44}
+.flash-timeout{color:#ff0}
+.overlay{
+  position:fixed;top:0;left:0;width:100%;height:100%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:rgba(10,10,26,0.92);z-index:50
+}
+.overlay.hidden{display:none}
+.overlay h2{font-size:32px;margin-bottom:10px}
+.overlay p{font-size:15px;color:#aaa;margin:4px 0}
+.overlay .big{font-size:52px;font-weight:bold;margin:10px 0}
+.btn{margin-top:14px;padding:12px 36px;font-size:18px;border:2px solid #ff4;background:transparent;color:#ff4;border-radius:6px;cursor:pointer;transition:.2s;font-family:inherit}
+.btn:hover{background:#ff4;color:#0a0a1a}
+#lives-display{font-size:24px;margin-top:8px;letter-spacing:4px}
+</style>
+</head>
+<body>
+<a href="../" id="back">← BACK</a>
+<div id="header">
+<h1>COLOR MATCH</h1>
+<div class="stats">
+<div class="stat"><div class="label">Score</div><div class="val" id="score">0</div></div>
+<div class="stat"><div class="label">Streak</div><div class="val" id="streak">0</div></div>
+<div class="stat"><div class="label">Best Time</div><div class="val" id="best-time">-</div></div>
+</div>
+</div>
+<div id="game-area">
+<div id="lives-display"></div>
+<div id="color-word">RED</div>
+<div id="timer-bar"><div id="timer-fill"></div></div>
+<div id="result-flash"></div>
+<div class="buttons">
+<button class="choice-btn" id="match-btn">✓ SAME</button>
+<button class="choice-btn" id="nomatch-btn">✗ DIFFERENT</button>
+</div>
+</div>
+<div class="overlay" id="start-overlay">
+<h2 style="color:#ff4">COLOR MATCH</h2>
+<p>A color name is shown in a DIFFERENT color</p>
+<p>Click SAME if text matches display color</p>
+<p>Click DIFFERENT if they don't match</p>
+<p style="margin-top:10px;color:#f44">You have 3 lives. Speed increases each round!</p>
+<button class="btn" id="start-btn">START</button>
+</div>
+<div class="overlay hidden" id="gameover-overlay">
+<h2 style="color:#f44">GAME OVER</h2>
+<div class="big" style="color:#ff4" id="final-score">0</div>
+<p>Final Score</p>
+<p id="final-streak">Best streak: 0</p>
+<p id="final-best">Best reaction: -</p>
+<button class="btn" id="restart-btn">PLAY AGAIN</button>
+</div>
+<script>
+const colorWord=document.getElementById('color-word');
+const timerFill=document.getElementById('timer-fill');
+const resultFlash=document.getElementById('result-flash');
+const scoreEl=document.getElementById('score');
+const streakEl=document.getElementById('streak');
+const bestTimeEl=document.getElementById('best-time');
+const livesEl=document.getElementById('lives-display');
+const matchBtn=document.getElementById('match-btn');
+const nomatchBtn=document.getElementById('nomatch-btn');
+const startOverlay=document.getElementById('start-overlay');
+const gameoverOverlay=document.getElementById('gameover-overlay');
+const finalScoreEl=document.getElementById('final-score');
+const finalStreakEl=document.getElementById('final-streak');
+const finalBestEl=document.getElementById('final-best');
+
+const COLORS=[
+  {name:'RED',hex:'#f44336'},
+  {name:'BLUE',hex:'#2196f3'},
+  {name:'GREEN',hex:'#4caf50'},
+  {name:'YELLOW',hex:'#ffeb3b'},
+  {name:'PURPLE',hex:'#9c27b0'},
+  {name:'ORANGE',hex:'#ff9800'},
+  {name:'PINK',hex:'#e91e63'},
+  {name:'CYAN',hex:'#00bcd4'},
+  {name:'WHITE',hex:'#ffffff'},
+  {name:'BROWN',hex:'#795548'}
+];
+
+let score,streak,bestStreak,lives,state,currentPair,reactionStart,timerTimeout,barInterval;
+let baseTime=3500,timeLimit,bestReaction=Infinity;
+
+function pickPair(){
+  const isMatch=Math.random()<0.4;
+  const nameIdx=Math.floor(Math.random()*COLORS.length);
+  let colorIdx;
+  if(isMatch){
+    colorIdx=nameIdx;
+  }else{
+    do{colorIdx=Math.floor(Math.random()*COLORS.length)}while(colorIdx===nameIdx);
+  }
+  return{
+    name:COLORS[nameIdx].name,
+    displayColor:COLORS[colorIdx].hex,
+    isMatch:nameIdx===colorIdx
+  };
+}
+
+function showRound(){
+  currentPair=pickPair();
+  colorWord.textContent=currentPair.name;
+  colorWord.style.color=currentPair.displayColor;
+  resultFlash.textContent='';
+  resultFlash.className='';
+  matchBtn.disabled=false;
+  nomatchBtn.disabled=false;
+
+  timeLimit=Math.max(1200,baseTime-score*30);
+  timerFill.style.width='100%';
+  timerFill.style.transition='none';
+  void timerFill.offsetWidth;
+  timerFill.style.transition=`width ${timeLimit}ms linear`;
+  timerFill.style.width='0%';
+
+  reactionStart=Date.now();
+  clearTimeout(timerTimeout);
+  timerTimeout=setTimeout(()=>handleAnswer(null),timeLimit);
+}
+
+function handleAnswer(answer){
+  clearTimeout(timerTimeout);
+  timerFill.style.transition='none';
+  matchBtn.disabled=true;
+  nomatchBtn.disabled=true;
+
+  if(answer===null){
+    resultFlash.textContent='TIME\'S UP!';
+    resultFlash.className='flash-timeout';
+    loseLife();
+  }else if(answer===currentPair.isMatch){
+    const reaction=Date.now()-reactionStart;
+    if(reaction<bestReaction){bestReaction=reaction;bestTimeEl.textContent=reaction+'ms'}
+    score+=1+Math.floor(streak/3);
+    streak++;if(streak>bestStreak)bestStreak=streak;
+    scoreEl.textContent=score;
+    streakEl.textContent=streak;
+    resultFlash.textContent='CORRECT! ('+reaction+'ms)';
+    resultFlash.className='flash-correct';
+    setTimeout(showRound,600);
+  }else{
+    resultFlash.textContent='WRONG!';
+    resultFlash.className='flash-wrong';
+    streak=0;streakEl.textContent='0';
+    loseLife();
+  }
+}
+
+function loseLife(){
+  lives--;
+  updateLives();
+  if(lives<=0){
+    state='gameover';
+    finalScoreEl.textContent=score;
+    finalStreakEl.textContent='Best streak: '+bestStreak;
+    finalBestEl.textContent='Best reaction: '+(bestReaction<Infinity?bestReaction+'ms':'-');
+    gameoverOverlay.classList.remove('hidden');
+  }else{
+    setTimeout(showRound,800);
+  }
+}
+
+function updateLives(){
+  livesEl.textContent='❤️'.repeat(lives)+'🖤'.repeat(Math.max(0,3-lives));
+}
+
+function startGame(){
+  score=0;streak=0;bestStreak=0;lives=3;state='playing';
+  scoreEl.textContent='0';streakEl.textContent='0';
+  startOverlay.classList.add('hidden');
+  gameoverOverlay.classList.add('hidden');
+  updateLives();
+  showRound();
+}
+
+matchBtn.addEventListener('click',()=>{if(state==='playing')handleAnswer(true)});
+nomatchBtn.addEventListener('click',()=>{if(state==='playing')handleAnswer(false)});
+
+document.addEventListener('keydown',e=>{
+  if(state!=='playing')return;
+  if(e.code==='Space'||e.code==='ArrowUp'||e.code==='KeyY'){e.preventDefault();handleAnswer(true)}
+  if(e.code==='ArrowDown'||e.code==='KeyN'){e.preventDefault();handleAnswer(false)}
+});
+
+// Touch support
+document.addEventListener('touchstart',e=>{
+  if(state!=='playing')return;
+  if(e.target===matchBtn||e.target===nomatchBtn)return;
+  // Swipe up = match, swipe down = nomatch
+});
+
+document.getElementById('start-btn').addEventListener('click',startGame);
+document.getElementById('restart-btn').addEventListener('click',startGame);
+
+state='menu';
+updateLives();
+</script>
+</body>
+</html>

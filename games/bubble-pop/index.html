@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Bubble Pop</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;overflow:hidden;font-family:'Segoe UI',sans-serif;color:#fff;display:flex;flex-direction:column;height:100vh}
+#topbar{position:fixed;top:0;left:0;right:0;display:flex;align-items:center;padding:8px 16px;z-index:10;background:rgba(10,10,26,0.85);border-bottom:1px solid #222}
+#backBtn{color:#0ff;text-decoration:none;font-size:16px;font-weight:bold;padding:4px 10px;border:1px solid #0ff;border-radius:4px;transition:0.2s}
+#backBtn:hover{background:#0ff;color:#0a0a1a}
+#stats{margin-left:auto;display:flex;gap:18px;font-size:14px}
+#stats span{color:#ff0}
+canvas{display:block;flex:1;cursor:crosshair}
+#menu,#gameover{position:fixed;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(10,10,26,0.95);z-index:20}
+#gameover{display:none}
+h1{font-size:48px;color:#0ff;text-shadow:0 0 20px #0ff;margin-bottom:10px}
+.subtitle{color:#888;margin-bottom:30px;font-size:14px}
+.btn{padding:12px 36px;font-size:18px;border:2px solid #0ff;background:transparent;color:#0ff;border-radius:6px;cursor:pointer;margin:8px;transition:0.2s;font-family:inherit}
+.btn:hover{background:#0ff;color:#0a0a1a}
+.go-score{font-size:28px;color:#ff0;margin:16px 0}
+.go-info{color:#aaa;margin-bottom:20px;font-size:14px}
+</style>
+</head>
+<body>
+<div id="topbar">
+  <a href="../" id="backBtn">← BACK</a>
+  <div id="stats">
+    <span>Score: <b id="scoreDisplay">0</b></span>
+    <span>Level: <b id="levelDisplay">1</b></span>
+  </div>
+</div>
+<canvas id="game"></canvas>
+
+<div id="menu">
+  <h1>BUBBLE POP</h1>
+  <div class="subtitle">Match 3+ bubbles to pop them!</div>
+  <button class="btn" onclick="startGame()">START GAME</button>
+  <div style="color:#666;margin-top:20px;font-size:12px">Aim and click/tap to shoot · Match 3+ same color</div>
+</div>
+
+<div id="gameover">
+  <h1 style="color:#f44">GAME OVER</h1>
+  <div class="go-score">Score: <span id="finalScore">0</span></div>
+  <div class="go-info">Pops: <span id="finalPops">0</span> · Best combo: <span id="finalCombo">0</span></div>
+  <button class="btn" onclick="startGame()">RESTART</button>
+  <button class="btn" onclick="location.href='../'">HUB</button>
+</div>
+
+<script>
+const C=document.getElementById('game'),X=C.getContext('2d');
+let W,H;function resize(){W=C.width=innerWidth;H=C.height=innerHeight}
+resize();addEventListener('resize',resize);
+
+const COLORS=['#f44','#0f0','#00f','#ff0','#f0f','#0ff'];
+const BR=16; // bubble radius
+let grid=[],gridCols,gridRows=0,gridOffX=0;
+let shooter={x:0,y:0,angle:Math.PI/1.5,cur:null,next:null};
+let flying=null,particles=[];
+let score=0,level=1,totalPops=0,bestCombo=0;
+let descendTimer=0,descendOffset=0,state='menu';
+let mouseX=W/2,mouseY=H/2;
+let aimX=W/2,aimY=H/4;
+
+function gridToScreen(col,row){
+  const offX=(row%2===1)?BR:0;
+  return{x:gridOffX+col*BR*2+BR+offX,y:row*BR*1.73+BR+50+descendOffset};
+}
+
+function screenToGrid(sx,sy){
+  let best=null,bestD=Infinity;
+  for(let r=0;r<gridRows;r++){
+    const cols=(r%2===1)?gridCols-1:gridCols;
+    for(let c=0;c<cols;c++){
+      if(grid[r]&&grid[r][c]!==undefined&&grid[r][c]!==-1)continue;
+      const p=gridToScreen(c,r);
+      const d=Math.hypot(p.x-sx,p.y-sy);
+      if(d<bestD){bestD=d;best={col:c,row:r}}
+    }
+  }
+  return best;
+}
+
+function neighbors(r,c){
+  const even=r%2===0;
+  const dirs=even?[[-1,-1],[-1,0],[0,-1],[0,1],[1,-1],[1,0]]:[[-1,0],[-1,1],[0,-1],[0,1],[1,0],[1,1]];
+  return dirs.map(d=>({r:r+d[0],c:c+d[1]})).filter(p=>p.r>=0&&p.r<gridRows&&p.c>=0);
+}
+
+function findCluster(r,c,color,visited=new Set()){
+  const key=r+','+c;if(visited.has(key))return[];
+  if(!grid[r]||grid[r][c]!==color)return[];
+  visited.add(key);
+  let cluster=[{r,c}];
+  for(const n of neighbors(r,c))cluster=cluster.concat(findCluster(n.r,n.c,color,visited));
+  return cluster;
+}
+
+function findFloating(){
+  const connected=new Set();
+  const queue=[];
+  const cols0=(0%2===1)?gridCols-1:gridCols;
+  for(let c=0;c<cols0;c++){if(grid[0]&&grid[0][c]!==undefined&&grid[0][c]!==-1){queue.push({r:0,c});connected.add('0,'+c)}}
+  while(queue.length){
+    const {r,c}=queue.shift();
+    for(const n of neighbors(r,c)){
+      const k=n.r+','+n.c;
+      if(!connected.has(k)&&grid[n.r]&&grid[n.r][n.c]!==undefined&&grid[n.r][n.c]!==-1){
+        connected.add(k);queue.push(n);
+      }
+    }
+  }
+  const floating=[];
+  for(let r=0;r<gridRows;r++){
+    const cols=(r%2===1)?gridCols-1:gridCols;
+    for(let c=0;c<cols;c++){
+      if(grid[r]&&grid[r][c]!==undefined&&grid[r][c]!==-1&&!connected.has(r+','+c)){
+        floating.push({r,c});
+      }
+    }
+  }
+  return floating;
+}
+
+function initGrid(){
+  gridCols=Math.floor((W-40)/(BR*2));
+  gridRows=0;gridOffX=(W-gridCols*BR*2)/2;descendOffset=0;
+  grid=[];
+  for(let r=0;r<8;r++){gridRows++;grid[r]=[];const cols=(r%2===1)?gridCols-1:gridCols;for(let c=0;c<cols;c++)grid[r][c]=COLORS[Math.floor(Math.random()*6)]}
+}
+
+function startGame(){
+  score=0;level=1;totalPops=0;bestCombo=0;descendTimer=0;descendOffset=0;
+  shooter.x=W/2;shooter.y=H-60;
+  initGrid();
+  shooter.cur=COLORS[Math.floor(Math.random()*6)];
+  shooter.next=COLORS[Math.floor(Math.random()*6)];
+  flying=null;particles=[];
+  document.getElementById('menu').style.display='none';
+  document.getElementById('gameover').style.display='none';
+  state='playing';
+}
+
+function gameOver(){
+  state='gameover';
+  document.getElementById('finalScore').textContent=score;
+  document.getElementById('finalPops').textContent=totalPops;
+  document.getElementById('finalCombo').textContent=bestCombo;
+  document.getElementById('gameover').style.display='flex';
+}
+
+function shoot(){
+  if(flying||state!=='playing')return;
+  const angle=Math.atan2(aimY-shooter.y,aimX-shooter.x);
+  flying={x:shooter.x,y:shooter.y,vx:Math.cos(angle)*10,vy:Math.sin(angle)*10,color:shooter.cur};
+  shooter.cur=shooter.next;shooter.next=COLORS[Math.floor(Math.random()*6)];
+}
+
+C.addEventListener('mousemove',e=>{mouseX=e.clientX;mouseY=e.clientY;aimX=e.clientX;aimY=e.clientY});
+C.addEventListener('click',()=>shoot());
+C.addEventListener('touchstart',e=>{e.preventDefault();const t=e.touches[0];aimX=t.clientX;aimY=t.clientY;shoot()});
+C.addEventListener('touchmove',e=>{const t=e.touches[0];aimX=t.clientX;aimY=t.clientY});
+
+function update(){
+  if(state!=='playing')return;
+  shooter.angle=Math.atan2(aimY-shooter.y,aimX-shooter.x);
+
+  // descend
+  descendTimer++;
+  if(descendTimer%300===0)descendOffset+=BR*1.73/2;
+
+  // check if bubbles reached bottom
+  for(let r=0;r<gridRows;r++){
+    const cols=(r%2===1)?gridCols-1:gridCols;
+    for(let c=0;c<cols;c++){
+      if(grid[r]&&grid[r][c]!==undefined&&grid[r][c]!==-1){
+        const p=gridToScreen(c,r);
+        if(p.y+BR>shooter.y-30){gameOver();return}
+      }
+    }
+  }
+
+  // flying bubble
+  if(flying){
+    flying.x+=flying.vx;flying.y+=flying.vy;
+    // bounce off walls
+    if(flying.x<BR){flying.x=BR;flying.vx*=-1}
+    if(flying.x>W-BR){flying.x=W-BR;flying.vx*=-1}
+    if(flying.y<BR+50){
+      snapBubble(flying);flying=null;return;
+    }
+    // check collision with grid
+    for(let r=0;r<gridRows;r++){
+      const cols=(r%2===1)?gridCols-1:gridCols;
+      for(let c=0;c<cols;c++){
+        if(grid[r]&&grid[r][c]!==undefined&&grid[r][c]!==-1){
+          const p=gridToScreen(c,r);
+          if(Math.hypot(flying.x-p.x,flying.y-p.y)<BR*1.8){
+            snapBubble(flying);flying=null;return;
+          }
+        }
+      }
+    }
+  }
+
+  // particles
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i];p.x+=p.vx;p.y+=p.vy;p.life--;p.vy+=0.1;
+    if(p.life<=0)particles.splice(i,1);
+  }
+}
+
+function snapBubble(b){
+  const pos=screenToGrid(b.x,b.y);
+  if(!pos)return;
+  const {col,row}=pos;
+  while(gridRows<=row){const r=gridRows;grid[r]=[];const cols=(r%2===1)?gridCols-1:gridCols;for(let c=0;c<cols;c++)grid[r][c]=-1;gridRows++}
+  if(!grid[row])grid[row]=[];
+  grid[row][col]=b.color;
+  // find cluster
+  const cluster=findCluster(row,col,b.color);
+  if(cluster.length>=3){
+    for(const c of cluster)grid[c.r][c.c]=-1;
+    score+=cluster.length*10;
+    totalPops+=cluster.length;
+    if(cluster.length>bestCombo)bestCombo=cluster.length;
+    for(const c of cluster){const p=gridToScreen(c.c,c.r);spawnParts(p.x,p.y,b.color,6)}
+    // find floating
+    const floating=findFloating();
+    for(const f of floating){
+      grid[f.r][f.c]=-1;score+=5;
+      const p=gridToScreen(f.c,f.r);spawnParts(p.x,p.y,'#fff',4);
+    }
+    // check level up
+    let remaining=0;
+    for(let r=0;r<gridRows;r++){const cols=(r%2===1)?gridCols-1:gridCols;for(let c=0;c<cols;c++)if(grid[r]&&grid[r][c]!==-1)remaining++}
+    if(remaining===0){level++;initGrid();score+=100}
+  }
+}
+
+function spawnParts(x,y,col,n){
+  for(let i=0;i<n;i++)particles.push({x,y,vx:(Math.random()-0.5)*6,vy:(Math.random()-0.5)*6-2,life:30+Math.random()*15,col,r:Math.random()*4+2});
+}
+
+function draw(){
+  X.fillStyle='#0a0a1a';X.fillRect(0,0,W,H);
+  if(state!=='playing'&&state!=='gameover')return;
+
+  // grid
+  for(let r=0;r<gridRows;r++){
+    const cols=(r%2===1)?gridCols-1:gridCols;
+    for(let c=0;c<cols;c++){
+      if(!grid[r]||grid[r][c]===undefined||grid[r][c]===-1)continue;
+      const p=gridToScreen(c,r);
+      X.fillStyle=grid[r][c];
+      X.beginPath();X.arc(p.x,p.y,BR-1,0,Math.PI*2);X.fill();
+      X.strokeStyle='rgba(255,255,255,0.2)';X.lineWidth=1;X.stroke();
+      X.fillStyle='rgba(255,255,255,0.3)';X.beginPath();X.arc(p.x-3,p.y-4,4,0,Math.PI*2);X.fill();
+    }
+  }
+
+  // shooter line
+  X.strokeStyle='rgba(255,255,255,0.15)';X.lineWidth=2;X.setLineDash([5,5]);
+  X.beginPath();X.moveTo(shooter.x,shooter.y);X.lineTo(shooter.x+Math.cos(shooter.angle)*200,shooter.y+Math.sin(shooter.angle)*200);X.stroke();
+  X.setLineDash([]);
+
+  // flying
+  if(flying){
+    X.fillStyle=flying.color;X.beginPath();X.arc(flying.x,flying.y,BR-1,0,Math.PI*2);X.fill();
+    X.fillStyle='rgba(255,255,255,0.3)';X.beginPath();X.arc(flying.x-3,flying.y-4,4,0,Math.PI*2);X.fill();
+  }
+
+  // shooter
+  X.fillStyle='#333';X.fillRect(shooter.x-30,shooter.y-4,60,28);X.fillStyle='#555';X.fillRect(shooter.x-28,shooter.y-2,56,24);
+  X.fillStyle=shooter.cur;X.beginPath();X.arc(shooter.x,shooter.y+12,BR-2,0,Math.PI*2);X.fill();
+  X.fillStyle=shooter.next;X.globalAlpha=0.5;X.beginPath();X.arc(shooter.x+40,shooter.y+24,8,0,Math.PI*2);X.fill();X.globalAlpha=1;
+
+  // particles
+  for(const p of particles){
+    X.globalAlpha=p.life/40;X.fillStyle=p.col;
+    X.beginPath();X.arc(p.x,p.y,p.r,0,Math.PI*2);X.fill();
+  }
+  X.globalAlpha=1;
+
+  document.getElementById('scoreDisplay').textContent=score;
+  document.getElementById('levelDisplay').textContent=level;
+}
+
+function loop(){update();draw();requestAnimationFrame(loop)}
+loop();
+</script>
+</body>
+</html>

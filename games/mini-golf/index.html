@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Mini Golf 3D</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;color:#fff;font-family:'Segoe UI',Tahoma,sans-serif;overflow:hidden;height:100vh;display:flex;flex-direction:column;align-items:center}
+#backLink{position:fixed;top:10px;left:10px;z-index:100;color:#4f4;text-decoration:none;font-size:16px;background:rgba(0,0,0,0.5);padding:6px 14px;border-radius:8px;border:1px solid #4f4}
+#backLink:hover{background:#4f4;color:#0a0a1a}
+canvas{display:block}
+#hud{position:fixed;top:10px;left:50%;transform:translateX(-50%);text-align:center;font-size:15px;z-index:50;text-shadow:0 0 8px #000}
+#hud div{margin:3px 0}
+#startScreen,#gameOverScreen,#holeScreen{position:fixed;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(10,10,26,0.92);z-index:60}
+#gameOverScreen,#holeScreen{display:none}
+.title{font-size:clamp(28px,6vw,52px);color:#4f4;text-shadow:0 0 30px #4f4;margin-bottom:10px}
+.subtitle{font-size:clamp(12px,2.5vw,18px);color:#aaa;margin-bottom:20px}
+.info{font-size:clamp(11px,2vw,14px);color:#888;margin:4px 0;max-width:400px;text-align:center}
+.btn{margin-top:20px;padding:14px 40px;font-size:18px;border:2px solid #4f4;background:transparent;color:#4f4;border-radius:10px;cursor:pointer;transition:0.2s}
+.btn:hover{background:#4f4;color:#0a0a1a}
+#finalScore{font-size:clamp(28px,6vw,48px);color:#f4c430;text-shadow:0 0 20px #f4c430;margin:10px 0}
+#holeTitle{font-size:clamp(24px,5vw,40px);color:#f4c430;margin-bottom:5px}
+#holeInfo{font-size:18px;color:#ccc;margin:5px 0}
+.celebration{position:fixed;font-size:40px;pointer-events:none;z-index:70;animation:celebAnim 1.5s forwards}
+@keyframes celebAnim{0%{opacity:1;transform:scale(0.5) translateY(0)}50%{opacity:1;transform:scale(1.3) translateY(-30px)}100%{opacity:0;transform:scale(1) translateY(-60px)}}
+</style>
+</head>
+<body>
+<a id="backLink" href="../">← BACK</a>
+<div id="hud"><div id="holeDisplay">Hole 1/9</div><div id="parDisplay">Par: 3</div><div id="strokeDisplay">Strokes: 0</div><div id="totalDisplay">Total: 0</div></div>
+<canvas id="c"></canvas>
+<div id="startScreen">
+<div class="title">Mini Golf 3D</div>
+<div class="subtitle">9 holes of putting fun</div>
+<div class="info">Click/tap and drag to aim</div>
+<div class="info">Pull back to set power, release to putt</div>
+<div class="info">Ball physics with walls and obstacles</div>
+<button class="btn" id="startBtn">TEE OFF</button>
+</div>
+<div id="holeScreen">
+<div id="holeTitle">Hole Complete!</div>
+<div id="holeInfo"></div>
+<button class="btn" id="nextHoleBtn">NEXT HOLE</button>
+</div>
+<div id="gameOverScreen">
+<div class="title">ROUND COMPLETE!</div>
+<div id="finalScore"></div>
+<div class="info" id="finalStats"></div>
+<button class="btn" id="restartBtn">PLAY AGAIN</button>
+</div>
+<script>
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
+let W,H;
+function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight}
+resize();window.addEventListener('resize',resize);
+
+const HOLE_W=600,HOLE_H=400;
+let gameState='start';
+let currentHole=0,strokes=0,totalStrokes=0;
+let ball,holes,aiming,aimStart,aimEnd,ballMoving;
+let courseW,courseH,courseX,courseY;
+
+const courses=[
+{par:3,walls:[{x:0,y:0,w:HOLE_W,h:15},{x:0,y:HOLE_H-15,w:HOLE_W,h:15},{x:0,y:0,w:15,h:HOLE_H},{x:HOLE_W-15,y:0,w:15,h:HOLE_H}],obstacles:[{x:200,y:150,w:80,h:15,r:0}],hole:{x:520,y:200,r:12}},
+{par:3,walls:[{x:0,y:0,w:HOLE_W,h:15},{x:0,y:HOLE_H-15,w:HOLE_W,h:15},{x:0,y:0,w:15,h:HOLE_H},{x:HOLE_W-15,y:0,w:15,h:HOLE_H}],obstacles:[{x:150,y:120,w:15,h:160,r:0},{x:350,y:120,w:15,h:160,r:0}],hole:{x:480,y:200,r:12}},
+{par:3,walls:[{x:0,y:0,w:HOLE_W,h:15},{x:0,y:HOLE_H-15,w:HOLE_W,h:15},{x:0,y:0,w:15,h:HOLE_H},{x:HOLE_W-15,y:0,w:15,h:HOLE_H}],obstacles:[{x:280,y:0,w:15,h:200,r:0},{x:280,y:220,w:15,h:180,r:0}],hole:{x:500,y:200,r:12}},
+{par:4,walls:[{x:0,y:0,w:HOLE_W,h:15},{x:0,y:HOLE_H-15,w:HOLE_W,h:15},{x:0,y:0,w:15,h:HOLE_H},{x:HOLE_W-15,y:0,w:15,h:HOLE_H},{x:180,y:100,w:15,h:200,r:0}],obstacles:[{x:350,y:50,w:100,h:15,r:0},{x:350,y:280,w:100,h:15,r:0}],hole:{x:520,y:200,r:12}},
+{par:4,walls:[{x:0,y:0,w:HOLE_W,h:15},{x:0,y:HOLE_H-15,w:HOLE_W,h:15},{x:0,y:0,w:15,h:HOLE_H},{x:HOLE_W-15,y:0,w:15,h:HOLE_H}],obstacles:[{x:100,y:80,w:120,h:12,r:0.3},{x:400,y:280,w:120,h:12,r:-0.3},{x:250,y:180,w:60,h:60,r:Math.PI/4}],hole:{x:520,y:200,r:12}},
+{par:4,walls:[{x:0,y:0,w:HOLE_W,h:15},{x:0,y:HOLE_H-15,w:HOLE_W,h:15},{x:0,y:0,w:15,h:HOLE_H},{x:HOLE_W-15,y:0,w:15,h:HOLE_H},{x:200,y:150,w:200,h:15,r:0},{x:200,y:250,w:200,h:15,r:0}],obstacles:[],hole:{x:520,y:200,r:12}},
+{par:4,walls:[{x:0,y:0,w:HOLE_W,h:15},{x:0,y:HOLE_H-15,w:HOLE_W,h:15},{x:0,y:0,w:15,h:HOLE_H},{x:HOLE_W-15,y:0,w:15,h:HOLE_H}],obstacles:[{x:150,y:100,w:12,h:120,r:0},{x:350,y:180,w:12,h:120,r:0},{x:250,y:140,w:12,h:120,r:0}],hole:{x:520,y:200,r:12}},
+{par:5,walls:[{x:0,y:0,w:HOLE_W,h:15},{x:0,y:HOLE_H-15,w:HOLE_W,h:15},{x:0,y:0,w:15,h:HOLE_H},{x:HOLE_W-15,y:0,w:15,h:HOLE_H},{x:150,y:0,w:15,h:150,r:0},{x:400,y:HOLE_H-150,w:15,h:150,r:0}],obstacles:[{x:200,y:180,w:80,h:12,r:0.2},{x:350,y:220,w:80,h:12,r:-0.2}],hole:{x:520,y:200,r:12}},
+{par:5,walls:[{x:0,y:0,w:HOLE_W,h:15},{x:0,y:HOLE_H-15,w:HOLE_W,h:15},{x:0,y:0,w:15,h:HOLE_H},{x:HOLE_W-15,y:0,w:15,h:HOLE_H}],obstacles:[{x:100,y:80,w:100,h:15,r:0},{x:300,y:180,w:15,h:150,r:0},{x:450,y:100,w:100,h:15,r:0},{x:200,y:300,w:100,h:15,r:0}],hole:{x:520,y:200,r:12}},
+{par:5,walls:[{x:0,y:0,w:HOLE_W,h:15},{x:0,y:HOLE_H-15,w:HOLE_W,h:15},{x:0,y:0,w:15,h:HOLE_H},{x:HOLE_W-15,y:0,w:15,h:HOLE_H},{x:150,y:130,w:300,h:15,r:0}],obstacles:[{x:100,y:250,w:12,h:120,r:0},{x:480,y:250,w:12,h:120,r:0},{x:290,y:200,w:50,h:50,r:Math.PI/6}],hole:{x:520,y:350,r:12}}
+];
+
+function calcCourseSize(){
+let maxW=window.innerWidth-40,maxH=window.innerHeight-120;
+let scale=Math.min(maxW/HOLE_W,maxH/HOLE_H,1.5);
+courseW=HOLE_W*scale;courseH=HOLE_H*scale;
+courseX=(W-courseW)/2;courseY=(H-courseH)/2+20;
+}
+
+function toScreen(px,py){return{x:courseX+px*courseW/HOLE_W,y:courseY+py*courseH/HOLE_H}}
+function toWorld(sx,sy){return{x:(sx-courseX)*HOLE_W/courseW,y:(sy-courseY)*HOLE_H/courseH}}
+function worldScale(){return courseW/HOLE_W}
+
+function initHole(){
+let c=courses[currentHole];
+ball={x:50,y:HOLE_H/2,vx:0,vy:0,r:6};
+strokes=0;ballMoving=false;
+updateHUD();
+}
+
+function updateHUD(){
+document.getElementById('holeDisplay').textContent='Hole '+(currentHole+1)+'/9';
+document.getElementById('parDisplay').textContent='Par: '+courses[currentHole].par;
+document.getElementById('strokeDisplay').textContent='Strokes: '+strokes;
+document.getElementById('totalDisplay').textContent='Total: '+totalStrokes;
+}
+
+function update(){
+if(gameState!=='playing'||ballMoving)return;
+let b=ball;
+b.x+=b.vx;b.y+=b.vy;
+b.vx*=0.985;b.vy*=0.985;
+if(Math.abs(b.vx)<0.05)b.vx=0;
+if(Math.abs(b.vy)<0.05)b.vy=0;
+if(b.vx===0&&b.vy===0)return;
+
+let c=courses[currentHole];
+// Wall collisions
+c.walls.forEach(w=>{
+let wl=w.x,wt=w.y,wr=w.x+w.w,wb=w.y+w.h;
+if(b.x+b.r>wl&&b.x-b.r<wr&&b.y+b.r>wt&&b.y-b.r<wb){
+let overlapL=b.x+b.r-wl,overlapR=wr-(b.x-b.r),overlapT=b.y+b.r-wt,overlapB=wb-(b.y-b.r);
+let min=Math.min(overlapL,overlapR,overlapT,overlapB);
+if(min===overlapL||min===overlapR)b.vx*=-0.7;
+else b.vy*=-0.7;
+}
+});
+// Obstacle collisions
+c.obstacles.forEach(o=>{
+if(o.r){
+let cx=o.x+o.w/2,cy=o.y+o.h/2;
+let dx=b.x-cx,dy=b.y-cy;
+let dist=Math.sqrt(dx*dx+dy*dy);
+if(dist<b.r+Math.max(o.w,o.h)/2){
+let nx=dx/dist,ny=dy/dist;
+let dot=b.vx*nx+b.vy*ny;
+b.vx-=2*dot*nx*0.7;b.vy-=2*dot*ny*0.7;
+b.x=cx+nx*(b.r+Math.max(o.w,o.h)/2+1);
+b.y=cy+ny*(b.r+Math.max(o.w,o.h)/2+1);
+}
+}else{
+let wl=o.x,wt=o.y,wr=o.x+o.w,wb=o.y+o.h;
+if(b.x+b.r>wl&&b.x-b.r<wr&&b.y+b.r>wt&&b.y-b.r<wb){
+let overlapL=b.x+b.r-wl,overlapR=wr-(b.x-b.r),overlapT=b.y+b.r-wt,overlapB=wb-(b.y-b.r);
+let min=Math.min(overlapL,overlapR,overlapT,overlapB);
+if(min===overlapL||min===overlapR)b.vx*=-0.7;
+else b.vy*=-0.7;
+}
+}
+});
+// Hole check
+let dx=b.x-c.hole.x,dy=b.y-c.hole.y;
+if(Math.sqrt(dx*dx+dy*dy)<c.hole.r&&Math.sqrt(b.vx*b.vx+b.vy*b.vy)<4){
+ballMoving=false;ball.x=c.hole.x;ball.y=c.hole.y;
+totalStrokes+=strokes;
+showCelebration();
+setTimeout(()=>{
+if(currentHole<8){currentHole++;initHole();document.getElementById('holeScreen').style.display='flex'}
+else showGameOver();
+},800);
+}
+// Out of bounds
+if(b.x<0||b.x>HOLE_W||b.y<0||b.y>HOLE_H){
+b.x=50;b.y=HOLE_H/2;b.vx=0;b.vy=0;strokes++;updateHUD();
+}
+}
+
+function draw(){
+ctx.clearRect(0,0,W,H);
+if(gameState!=='playing')return;
+calcCourseSize();
+let c=courses[currentHole];
+// Green
+ctx.fillStyle='#1a6b35';
+ctx.fillRect(courseX,courseY,courseW,courseH);
+// Grass pattern
+ctx.fillStyle='#1d7a3a';
+for(let i=0;i<20;i++){
+let gx=courseX+(i*37.5)%courseW;
+let gy=courseY+(i*23.7)%courseH;
+ctx.fillRect(gx,gy,courseW/30,courseH/20);
+}
+// Walls
+ctx.fillStyle='#8B4513';
+c.walls.forEach(w=>{
+let s=toScreen(w.x,w.y);
+let sw=w.w*worldScale(),sh=w.h*worldScale();
+ctx.fillRect(s.x,s.y,sw,sh);
+ctx.strokeStyle='#6B3410';ctx.lineWidth=1;
+ctx.strokeRect(s.x,s.y,sw,sh);
+});
+// Obstacles
+ctx.fillStyle='#aaa';
+c.obstacles.forEach(o=>{
+let s=toScreen(o.x,o.y);
+let sw=o.w*worldScale(),sh=o.h*worldScale();
+ctx.save();
+ctx.translate(s.x+sw/2,s.y+sh/2);
+ctx.rotate(o.r);
+ctx.fillRect(-sw/2,-sh/2,sw,sh);
+ctx.restore();
+});
+// Hole
+let hs=toScreen(c.hole.x,c.hole.y);
+let hr=c.hole.r*worldScale();
+ctx.fillStyle='#111';
+ctx.beginPath();ctx.arc(hs.x,hs.y,hr,0,Math.PI*2);ctx.fill();
+ctx.strokeStyle='#333';ctx.lineWidth=2;ctx.stroke();
+// Flag
+ctx.strokeStyle='#fff';ctx.lineWidth=2;
+ctx.beginPath();ctx.moveTo(hs.x,hs.y);ctx.lineTo(hs.x,hs.y-hr*2);ctx.stroke();
+ctx.fillStyle='#f44';
+ctx.beginPath();ctx.moveTo(hs.x+1,hs.y-hr*2);ctx.lineTo(hs.x+hr,hs.y-hr*1.5);ctx.lineTo(hs.x+1,hs.y-hr);ctx.fill();
+// Ball
+let bs=toScreen(ball.x,ball.y);
+let br=ball.r*worldScale();
+ctx.fillStyle='#fff';
+ctx.beginPath();ctx.arc(bs.x,bs.y,br,0,Math.PI*2);ctx.fill();
+ctx.strokeStyle='#ddd';ctx.lineWidth=1;ctx.stroke();
+// Aim line
+if(aiming&&aimStart){
+ctx.strokeStyle='rgba(255,255,255,0.4)';ctx.lineWidth=2;ctx.setLineDash([5,5]);
+let dx=aimStart.x-aimEnd.x,dy=aimStart.y-aimEnd.y;
+let len=Math.sqrt(dx*dx+dy*dy);
+let power=Math.min(len,100);
+let nx=dx/len,ny=dy/len;
+ctx.beginPath();
+ctx.moveTo(bs.x,bs.y);
+ctx.lineTo(bs.x+nx*power*1.5,bs.y+ny*power*1.5);
+ctx.stroke();
+ctx.setLineDash([]);
+// Power indicator
+let pw=power/100;
+ctx.fillStyle=pw<0.5?'#4f4':pw<0.8?'#fa0':'#f44';
+ctx.fillRect(bs.x+15,bs.y-25,60,8);
+ctx.fillStyle='#fff';ctx.fillRect(bs.x+15,bs.y-25,60*pw,8);
+}
+}
+
+function showCelebration(){
+let el=document.createElement('div');
+el.className='celebration';
+el.textContent='⛳ HOLE IN ONE!'.replace('HOLE IN ONE',strokes===1?'HOLE IN ONE!':strokes<=courses[currentHole].par?'NICE PAR!':'GOOD HOLE!');
+el.style.left='50%';el.style.top='40%';el.style.transform='translateX(-50%)';
+document.body.appendChild(el);setTimeout(()=>el.remove(),1500);
+}
+
+function gameLoop(){update();draw();requestAnimationFrame(gameLoop)}
+
+function showGameOver(){
+document.getElementById('gameOverScreen').style.display='flex';
+let totalPar=courses.reduce((s,c)=>s+c.par,0);
+let diff=totalStrokes-totalPar;
+document.getElementById('finalScore').textContent=totalStrokes+' strokes';
+document.getElementById('finalStats').textContent='Total Par: '+totalPar+' | '+(diff<=0?(-diff)+' under':'+'+diff+' over');
+}
+
+function startGame(){
+document.getElementById('startScreen').style.display='none';
+document.getElementById('gameOverScreen').style.display='none';
+document.getElementById('holeScreen').style.display='none';
+currentHole=0;totalStrokes=0;initHole();gameState='playing';
+}
+
+document.getElementById('startBtn').addEventListener('click',startGame);
+document.getElementById('restartBtn').addEventListener('click',startGame);
+document.getElementById('nextHoleBtn').addEventListener('click',()=>{
+document.getElementById('holeScreen').style.display='none';initHole();
+});
+
+// Aim and shoot
+let isDragging=false;
+canvas.addEventListener('mousedown',e=>{
+if(gameState!=='playing'||ballMoving)return;
+isDragging=true;aimStart={x:e.clientX,y:e.clientY};aimEnd={x:e.clientX,y:e.clientY};
+});
+canvas.addEventListener('mousemove',e=>{if(isDragging)aimEnd={x:e.clientX,y:e.clientY}});
+canvas.addEventListener('mouseup',e=>{
+if(!isDragging)return;isDragging=false;
+let dx=aimStart.x-aimEnd.x,dy=aimStart.y-aimEnd.y;
+let power=Math.min(Math.sqrt(dx*dx+dy*dy)/100,1)*6;
+if(power<0.3)return;
+let len=Math.sqrt(dx*dx+dy*dy);
+ball.vx=(dx/len)*power;ball.vy=(dy/len)*power;
+ballMoving=true;strokes++;updateHUD();
+aimStart=null;
+});
+
+canvas.addEventListener('touchstart',e=>{
+if(gameState!=='playing'||ballMoving)return;
+let t=e.touches[0];
+isDragging=true;aimStart={x:t.clientX,y:t.clientY};aimEnd={x:t.clientX,y:t.clientY};
+e.preventDefault();
+},{passive:false});
+canvas.addEventListener('touchmove',e=>{
+if(!isDragging)return;
+let t=e.touches[0];aimEnd={x:t.clientX,y:t.clientY};e.preventDefault();
+},{passive:false});
+canvas.addEventListener('touchend',e=>{
+if(!isDragging)return;isDragging=false;
+let dx=aimStart.x-aimEnd.x,dy=aimStart.y-aimEnd.y;
+let power=Math.min(Math.sqrt(dx*dx+dy*dy)/100,1)*6;
+if(power<0.3)return;
+let len=Math.sqrt(dx*dx+dy*dy);
+ball.vx=(dx/len)*power;ball.vy=(dy/len)*power;
+ballMoving=true;strokes++;updateHUD();aimStart=null;
+});
+
+gameLoop();
+</script>
+</body>
+</html>

@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Endless Climber</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;overflow:hidden;font-family:'Segoe UI',sans-serif;color:#fff;display:flex;flex-direction:column;height:100vh}
+#topbar{position:fixed;top:0;left:0;right:0;display:flex;align-items:center;padding:8px 16px;z-index:10;background:rgba(10,10,26,0.85);border-bottom:1px solid #222}
+#backBtn{color:#0ff;text-decoration:none;font-size:16px;font-weight:bold;padding:4px 10px;border:1px solid #0ff;border-radius:4px;transition:0.2s}
+#backBtn:hover{background:#0ff;color:#0a0a1a}
+#stats{margin-left:auto;display:flex;gap:18px;font-size:14px}
+#stats span{color:#ff0}
+canvas{display:block;flex:1}
+#menu,#gameover{position:fixed;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(10,10,26,0.95);z-index:20}
+#gameover{display:none}
+h1{font-size:48px;color:#0ff;text-shadow:0 0 20px #0ff;margin-bottom:10px}
+.subtitle{color:#888;margin-bottom:30px;font-size:14px}
+.btn{padding:12px 36px;font-size:18px;border:2px solid #0ff;background:transparent;color:#0ff;border-radius:6px;cursor:pointer;margin:8px;transition:0.2s;font-family:inherit}
+.btn:hover{background:#0ff;color:#0a0a1a}
+.go-score{font-size:28px;color:#ff0;margin:16px 0}
+.go-info{color:#aaa;margin-bottom:20px;font-size:14px}
+</style>
+</head>
+<body>
+<div id="topbar">
+  <a href="../" id="backBtn">← BACK</a>
+  <div id="stats">
+    <span>Score: <b id="scoreDisplay">0</b></span>
+    <span>Height: <b id="heightDisplay">0</b>m</span>
+    <span>Best: <b id="bestDisplay">0</b>m</span>
+  </div>
+</div>
+<canvas id="game"></canvas>
+
+<div id="menu">
+  <h1>ENDLESS CLIMBER</h1>
+  <div class="subtitle">Jump your way to the top!</div>
+  <button class="btn" onclick="startGame()">START GAME</button>
+  <div style="color:#666;margin-top:20px;font-size:12px">← → Arrow keys / A D to move · Auto-bounce on platforms</div>
+</div>
+
+<div id="gameover">
+  <h1 style="color:#f44">YOU FELL!</h1>
+  <div class="go-score">Height: <span id="finalHeight">0</span>m</div>
+  <div class="go-info">Score: <span id="finalScore">0</span> · Best: <span id="finalBest">0</span>m</div>
+  <button class="btn" onclick="startGame()">RESTART</button>
+  <button class="btn" onclick="location.href='../'">HUB</button>
+</div>
+
+<script>
+const C=document.getElementById('game'),X=C.getContext('2d');
+let W,H;function resize(){W=C.width=innerWidth;H=C.height=innerHeight}
+resize();addEventListener('resize',resize);
+
+const keys={};
+addEventListener('keydown',e=>{keys[e.code]=true;if(['ArrowUp','ArrowDown','Space'].includes(e.code))e.preventDefault()});
+addEventListener('keyup',e=>keys[e.code]=false);
+
+let tiltX=0;
+if(window.DeviceOrientationEvent){
+  window.addEventListener('deviceorientation',e=>{if(e.gamma)tiltX=e.gamma/30});
+}
+
+let touchL=false,touchR=false;
+C.addEventListener('touchstart',e=>{e.preventDefault();const t=e.touches[0];if(t.clientX<W/2)touchL=true;else touchR=true});
+C.addEventListener('touchend',()=>{touchL=false;touchR=false});
+
+let state='menu',score=0,height=0,bestHeight=0;
+let player,platforms,particles,clouds;
+let camY=0,maxHeight=0,frame=0,platformGap=50;
+const grav=0.5,bounceForce=-13;
+
+function genPlatform(y){
+  const w=50+Math.random()*40;
+  const x=Math.random()*(W-w);
+  const broken=Math.random()<0.1+height*0.001;
+  return{x,y,w,h:10,broken,breakTimer:0};
+}
+
+function startGame(){
+  score=0;height=0;camY=0;maxHeight=0;frame=0;platformGap=50;
+  player={x:W/2,y:H-120,vy:0,vx:0,w:20,h:20,grounded:false};
+  platforms=[];particles=[];clouds=[];
+  platforms.push({x:W/2-40,y:H-80,w:80,h:10,broken:false});
+  for(let i=1;i<20;i++)platforms.push(genPlatform(H-80-i*platformGap));
+  for(let i=0;i<8;i++)clouds.push({x:Math.random()*W,y:Math.random()*H,w:60+Math.random()*80,sp:0.2+Math.random()*0.3});
+  document.getElementById('menu').style.display='none';
+  document.getElementById('gameover').style.display='none';
+  state='playing';
+}
+
+function gameOver(){
+  state='gameover';
+  if(height>bestHeight)bestHeight=height;
+  document.getElementById('finalHeight').textContent=height;
+  document.getElementById('finalScore').textContent=score;
+  document.getElementById('finalBest').textContent=bestHeight;
+  document.getElementById('gameover').style.display='flex';
+}
+
+function spawnParts(x,y,col,n){
+  for(let i=0;i<n;i++)particles.push({x,y,vx:(Math.random()-0.5)*4,vy:(Math.random()-0.5)*4,life:15+Math.random()*10,col,r:Math.random()*2+1});
+}
+
+function update(){
+  if(state!=='playing')return;
+  frame++;
+
+  // input
+  let moveX=0;
+  if(keys['ArrowLeft']||keys['KeyA']||touchL)moveX=-1;
+  if(keys['ArrowRight']||keys['KeyD']||touchR)moveX=1;
+  if(tiltX!==0)moveX=tiltX;
+  player.vx=moveX*5;
+
+  // gravity
+  player.vy+=grav;player.y+=player.vy;player.x+=player.vx;
+
+  // wrap
+  if(player.x<-player.w)player.x=W;
+  if(player.x>W)player.x=-player.w;
+
+  // camera
+  const targetCam=player.y-H*0.5;
+  if(targetCam<camY)camY=targetCam;
+
+  // generate platforms
+  let topPlat=Infinity;
+  for(const p of platforms)if(p.y<topPlat)topPlat=p.y;
+  while(topPlat>camY-300){
+    platformGap=Math.min(90,50+maxHeight*0.01);
+    const ny=topPlat-platformGap-Math.random()*20;
+    platforms.push(genPlatform(ny));
+    topPlat=ny;
+  }
+
+  // remove old
+  for(let i=platforms.length-1;i>=0;i--)if(platforms[i].y>camY+H+50)platforms.splice(i,1);
+
+  // collision
+  player.grounded=false;
+  if(player.vy>0){
+    for(const p of platforms){
+      const px=player.x,py=player.y+player.h/2;
+      const prevY=py-player.vy;
+      if(px>p.x-10&&px<p.x+p.w+10&&py>=p.y&&prevY<=p.y+4){
+        if(p.broken){
+          p.breakTimer=15;spawnParts(p.x+p.w/2,p.y,'#a64',6);continue;
+        }
+        player.y=p.y-player.h/2;player.vy=bounceForce;player.grounded=true;
+        spawnParts(player.x,p.y,'#0ff',4);
+      }
+    }
+  }
+
+  // broken platforms
+  for(let i=platforms.length-1;i>=0;i--){
+    if(platforms[i].breakTimer>0){
+      platforms[i].breakTimer--;
+      if(platforms[i].breakTimer<=0)platforms.splice(i,1);
+    }
+  }
+
+  // clouds
+  for(const c of clouds){c.y+=c.sp;if(c.y>camY+H+100){c.y=camY-100;c.x=Math.random()*W}}
+
+  // score
+  if(-player.y>maxHeight){maxHeight=-player.y;height=Math.floor(maxHeight/10);score=height}
+
+  // game over
+  if(player.y>camY+H+50)gameOver();
+
+  document.getElementById('scoreDisplay').textContent=score;
+  document.getElementById('heightDisplay').textContent=height;
+  document.getElementById('bestDisplay').textContent=bestHeight;
+}
+
+function draw(){
+  X.fillStyle='#0a0a1a';X.fillRect(0,0,W,H);
+  if(state!=='playing'&&state!=='gameover')return;
+
+  // clouds
+  X.fillStyle='rgba(255,255,255,0.04)';
+  for(const c of clouds)X.beginPath();X.ellipse(c.x,c.y+camY*0.3,c.w/2,c.w/4,0,0,Math.PI*2);X.fill();
+
+  X.save();X.translate(0,-camY);
+
+  // platforms
+  for(const p of platforms){
+    if(p.breakTimer>0){X.globalAlpha=p.breakTimer/15}
+    const gradient=X.createLinearGradient(p.x,p.y,p.x+p.w,p.y);
+    if(p.broken){
+      gradient.addColorStop(0,'#a64');gradient.addColorStop(1,'#c86');
+    }else{
+      gradient.addColorStop(0,'#0a6');gradient.addColorStop(1,'#0cf');
+    }
+    X.fillStyle=gradient;
+    X.beginPath();X.roundRect(p.x,p.y,p.w,p.h,4);X.fill();
+    X.fillStyle='rgba(255,255,255,0.15)';X.fillRect(p.x+2,p.y+1,p.w-4,3);
+    X.globalAlpha=1;
+  }
+
+  // player
+  X.fillStyle='#0ff';
+  X.beginPath();X.roundRect(player.x-player.w/2,player.y-player.h/2,player.w,player.h,4);X.fill();
+  // face
+  X.fillStyle='#0a0a1a';
+  X.fillRect(player.x-5,player.y-4,3,3);X.fillRect(player.x+2,player.y-4,3,3);
+  // bounce effect
+  if(player.vy<0){
+    X.fillStyle='rgba(0,255,255,0.3)';
+    X.beginPath();X.arc(player.x,player.y+player.h/2+4,8,0,Math.PI*2);X.fill();
+  }
+
+  // particles
+  for(const p of particles){
+    X.globalAlpha=p.life/20;X.fillStyle=p.col;
+    X.beginPath();X.arc(p.x,p.y,p.r,0,Math.PI*2);X.fill();
+  }
+  X.globalAlpha=1;
+  X.restore();
+}
+
+function loop(){update();draw();for(const p of particles){p.x+=p.vx;p.y+=p.vy;p.life--}for(let i=particles.length-1;i>=0;i--)if(particles[i].life<=0)particles.splice(i,1);requestAnimationFrame(loop)}
+loop();
+</script>
+</body>
+</html>

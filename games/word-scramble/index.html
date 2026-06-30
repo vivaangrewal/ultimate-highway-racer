@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Word Scramble</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;color:#fff;font-family:'Segoe UI',sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+#topbar{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:rgba(255,255,255,0.05);border-bottom:1px solid rgba(255,255,255,0.1)}
+#topbar a{color:#4fc3f7;text-decoration:none;font-size:14px;font-weight:600}
+#topbar a:hover{color:#81d4fa}
+#stats{display:flex;gap:16px;font-size:13px;color:#aaa;flex-wrap:wrap}
+#stats span{color:#fff;font-weight:600}
+#game{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;gap:20px}
+#category{font-size:14px;color:#4fc3f7;background:rgba(79,195,247,0.1);padding:6px 16px;border-radius:20px}
+#scrambled{font-size:clamp(28px,6vw,48px);letter-spacing:8px;font-weight:700;color:#fff;min-height:60px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center}
+.sbox{display:inline-block;width:clamp(36px,6vw,50px);height:clamp(44px,7vw,60px);background:rgba(255,255,255,0.08);border:2px solid rgba(255,255,255,0.15);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:clamp(20px,4vw,32px)}
+#input{padding:12px 24px;font-size:20px;background:rgba(255,255,255,0.08);border:2px solid rgba(255,255,255,0.2);border-radius:12px;color:#fff;text-align:center;outline:none;width:min(400px,90vw);text-transform:uppercase;letter-spacing:4px}
+#input:focus{border-color:#4fc3f7}
+#btns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+button{padding:10px 20px;font-size:14px;border:none;border-radius:8px;cursor:pointer;font-weight:600;transition:0.2s}
+#hintBtn{background:rgba(255,193,7,0.2);color:#ffc107;border:1px solid rgba(255,193,7,0.3)}
+#hintBtn:hover{background:rgba(255,193,7,0.3)}
+#skipBtn{background:rgba(255,255,255,0.1);color:#aaa;border:1px solid rgba(255,255,255,0.2)}
+#skipBtn:hover{background:rgba(255,255,255,0.15)}
+#timer-bar{width:min(400px,90vw);height:6px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden}
+#timer-fill{height:100%;background:linear-gradient(90deg,#4fc3f7,#00e676);border-radius:3px;transition:width 0.3s}
+#feedback{font-size:16px;min-height:24px;font-weight:600}
+.correct{color:#00e676}.wrong{color:#ff5252}.hint{color:#ffc107}
+#diff{display:flex;gap:8px}
+.diff-btn{padding:6px 14px;font-size:12px;background:rgba(255,255,255,0.08);color:#aaa;border:1px solid rgba(255,255,255,0.15);border-radius:6px;cursor:pointer}
+.diff-btn.active{background:rgba(79,195,247,0.2);color:#4fc3f7;border-color:#4fc3f7}
+#ov{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:100;justify-content:center;align-items:center;flex-direction:column}
+#ov h1{font-size:36px;margin-bottom:10px;color:#4fc3f7}
+#ov p{font-size:18px;margin-bottom:20px;color:#ccc;text-align:center}
+#ov button{padding:12px 36px;font-size:16px;background:#4fc3f7;color:#0a0a1a;border:none;border-radius:8px;cursor:pointer;font-weight:700}
+</style>
+</head>
+<body>
+<div id="topbar"><a href="../">&larr; BACK</a><div id="stats">Score: <span id="score">0</span> | Streak: <span id="streak">0</span> | Word: <span id="wnum">1</span>/10</div></div>
+<div id="game">
+<div id="diff"><button class="diff-btn active" onclick="setDiff('easy')">Easy</button><button class="diff-btn" onclick="setDiff('medium')">Medium</button><button class="diff-btn" onclick="setDiff('hard')">Hard</button></div>
+<div id="category"></div>
+<div id="scrambled"></div>
+<div id="timer-bar"><div id="timer-fill"></div></div>
+<input id="input" type="text" placeholder="Type your guess..." autocomplete="off" autocapitalize="off">
+<div id="btns"><button id="hintBtn" onclick="useHint()">Hint (3 left)</button><button id="skipBtn" onclick="skipWord()">Skip</button></div>
+<div id="feedback"></div>
+</div>
+<div id="ov"><h1 id="ot">Game Over!</h1><p id="om"></p><button onclick="startGame()">Play Again</button></div>
+<script>
+const WORDS=[
+{w:'PLANET',c:'Space'},{w:'GALAXY',c:'Space'},{w:'COMET',c:'Space'},{w:'ASTEROID',c:'Space'},{w:'NEBULA',c:'Space'},
+{w:'PYTHON',c:'Programming'},{w:'CODING',c:'Programming'},{w:'ALGORITHM',c:'Programming'},{w:'VARIABLE',c:'Programming'},{w:'FUNCTION',c:'Programming'},
+{w:'LION',c:'Animals'},{w:'ELEPHANT',c:'Animals'},{w:'DOLPHIN',c:'Animals'},{w:'PENGUIN',c:'Animals'},{w:'GIRAFFE',c:'Animals'},
+{w:'GUITAR',c:'Music'},{w:'MELODY',c:'Music'},{w:'RHYTHM',c:'Music'},{w:'TRUMPET',c:'Music'},{w:'VIOLIN',c:'Music'},
+{w:'OCEAN',c:'Nature'},{w:'VOLCANO',c:'Nature'},{w:'TORNADO',c:'Nature'},{w:'GLACIER',c:'Nature'},{w:'CANYON',c:'Nature'},
+{w:'PIZZA',c:'Food'},{w:'BISCUIT',c:'Food'},{w:'CHOCOLATE',c:'Food'},{w:'PANCAKE',c:'Food'},{w:'SANDWICH',c:'Food'},
+{w:'BASKET',c:'Sports'},{w:'CRICKET',c:'Sports'},{w:'FENCING',c:'Sports'},{w:'ARCHERY',c:'Sports'},{w:'SURFING',c:'Sports'},
+{w:'LIBRARY',c:'Places'},{w:'BRIDGE',c:'Places'},{w:'TUNNEL',c:'Places'},{w:'HARBOR',c:'Places'},{w:'TEMPLE',c:'Places'},
+{w:'CLOUD',c:'Weather'},{w:'BREEZE',c:'Weather'},{w:'RAINBOW',c:'Weather'},{w:'THUNDER',c:'Weather'},{w:'BLIZZARD',c:'Weather'},
+{w:'ENGINE',c:'Vehicles'},{w:'PILOT',c:'Vehicles'},{w:'CANOE',c:'Vehicles'},{w:'ROCKET',c:'Vehicles'},{w:'BICYCLE',c:'Vehicles'},
+{w:'TROPHY',c:'Awards'},{w:'MEDAL',c:'Awards'},{w:'CROWN',c:'Awards'},{w:'RIBBON',c:'Awards'},{w:'GAVEL',c:'Objects'}
+];
+const TIME={easy:30,medium:20,hard:12};
+let diff='easy',score=0,streak=0,maxStreak=0,wordIdx=0,hints=3;
+let currentWord='',timerMax=0,timerLeft=0,timerInt=null,gameOver2=false;
+let shuffledWords=[],usedIdx=new Set();
+
+function setDiff(d){
+  diff=d;document.querySelectorAll('.diff-btn').forEach(b=>b.classList.toggle('active',b.textContent.toLowerCase()===d));
+  startGame();
+}
+
+function scramble(s){
+  let a=s.split('');
+  for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  if(a.join('')===s&&s.length>1)a=[a[1],a[0],...a.slice(2)];
+  return a.join('');
+}
+
+function pickWord(){
+  if(usedIdx.size>=WORDS.length)usedIdx.clear();
+  let ri;do{ri=Math.floor(Math.random()*WORDS.length)}while(usedIdx.has(ri));
+  usedIdx.add(ri);
+  return WORDS[ri];
+}
+
+function startGame(){
+  gameOver2=false;score=0;streak=0;maxStreak=0;wordIdx=0;hints=3;
+  usedIdx.clear();shuffledWords=[];
+  document.getElementById('ov').style.display='none';
+  updateStats();nextWord();
+}
+
+function nextWord(){
+  if(wordIdx>=10){endGame();return;}
+  let pw=pickWord();currentWord=pw.w;
+  document.getElementById('category').textContent='Category: '+pw.c;
+  let sc=scramble(currentWord);
+  document.getElementById('scrambled').innerHTML=sc.split('').map(l=>'<span class="sbox">'+l+'</span>').join('');
+  document.getElementById('input').value='';
+  document.getElementById('feedback').textContent='';
+  document.getElementById('feedback').className='';
+  document.getElementById('input').focus();
+  timerMax=TIME[diff];timerLeft=timerMax;
+  updateTimer();
+  if(timerInt)clearInterval(timerInt);
+  timerInt=setInterval(()=>{timerLeft-=0.1;if(timerLeft<=0){timerLeft=0;skipWord();}updateTimer();},100);
+  document.getElementById('hintBtn').textContent='Hint ('+hints+' left)';
+}
+
+function updateTimer(){
+  let pct=Math.max(0,(timerLeft/timerMax)*100);
+  let fill=document.getElementById('timer-fill');
+  fill.style.width=pct+'%';
+  fill.style.background=pct<30?'linear-gradient(90deg,#ff5252,#ff9800)':'linear-gradient(90deg,#4fc3f7,#00e676)';
+}
+
+function updateStats(){
+  document.getElementById('score').textContent=score;
+  document.getElementById('streak').textContent=streak;
+  document.getElementById('wnum').textContent=Math.min(wordIdx+1,10);
+}
+
+document.getElementById('input').addEventListener('keydown',function(e){
+  if(e.key==='Enter'){
+    let guess=this.value.trim().toUpperCase();
+    if(!guess)return;
+    if(guess===currentWord){
+      let bonus=Math.ceil(timerLeft/timerMax*50);
+      let streakBonus=streak*10;
+      score+=100+bonus+streakBonus;streak++;
+      if(streak>maxStreak)maxStreak=streak;
+      document.getElementById('feedback').textContent='Correct! +'+(100+bonus+streakBonus)+'pts';
+      document.getElementById('feedback').className='correct';
+    }else{
+      streak=0;
+      document.getElementById('feedback').textContent='Wrong! The word was: '+currentWord;
+      document.getElementById('feedback').className='wrong';
+    }
+    wordIdx++;updateStats();
+    clearInterval(timerInt);
+    setTimeout(nextWord,1200);
+  }
+});
+
+function useHint(){
+  if(hints<=0)return;
+  hints--;
+  let revealed=currentWord[0]+currentWord.slice(1).replace(/[A-Z]/g,'_');
+  document.getElementById('feedback').textContent='Hint: '+revealed+' ('+currentWord.length+' letters)';
+  document.getElementById('feedback').className='hint';
+  document.getElementById('hintBtn').textContent='Hint ('+hints+' left)';
+}
+
+function skipWord(){
+  clearInterval(timerInt);streak=0;
+  document.getElementById('feedback').textContent='Skipped! The word was: '+currentWord;
+  document.getElementById('feedback').className='wrong';
+  wordIdx++;updateStats();
+  setTimeout(nextWord,1000);
+}
+
+function endGame(){
+  gameOver2=true;clearInterval(timerInt);
+  document.getElementById('ot').textContent='Game Over!';
+  document.getElementById('om').innerHTML='Score: '+score+'<br>Best Streak: '+maxStreak+'<br>Difficulty: '+diff.charAt(0).toUpperCase()+diff.slice(1);
+  document.getElementById('ov').style.display='flex';
+}
+startGame();
+</script>
+</body>
+</html>

@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Sky Drift Racing</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;color:#fff;font-family:'Segoe UI',Tahoma,sans-serif;overflow:hidden;height:100vh;display:flex;flex-direction:column;align-items:center}
+#backLink{position:fixed;top:10px;left:10px;z-index:100;color:#4af;text-decoration:none;font-size:16px;background:rgba(0,0,0,0.5);padding:6px 14px;border-radius:8px;border:1px solid #4af4a}
+#backLink:hover{background:#4af;color:#0a0a1a}
+canvas{display:block;background:#0a0a1a}
+#ui{position:fixed;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;z-index:10}
+#ui>*{pointer-events:auto}
+#hud{position:fixed;top:10px;right:10px;text-align:right;font-size:15px;z-index:50;text-shadow:0 0 8px #000}
+#hud div{margin:4px 0}
+#startScreen,#gameOverScreen{position:fixed;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(10,10,26,0.92);z-index:60}
+#gameOverScreen{display:none}
+.title{font-size:clamp(28px,6vw,52px);color:#4af;text-shadow:0 0 30px #4af;margin-bottom:10px}
+.subtitle{font-size:clamp(12px,2.5vw,18px);color:#aaa;margin-bottom:20px}
+.info{font-size:clamp(11px,2vw,14px);color:#888;margin:4px 0;max-width:400px;text-align:center}
+.btn{margin-top:20px;padding:14px 40px;font-size:18px;border:2px solid #4af;background:transparent;color:#4af;border-radius:10px;cursor:pointer;transition:0.2s}
+.btn:hover{background:#4af;color:#0a0a1a}
+#finalScore{font-size:clamp(32px,7vw,60px);color:#f4c430;text-shadow:0 0 20px #f4c430;margin:10px 0}
+#boostBar{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);width:clamp(150px,40vw,300px);height:14px;background:rgba(255,255,255,0.1);border-radius:7px;border:1px solid #4af;z-index:50}
+#boostFill{height:100%;width:100%;background:linear-gradient(90deg,#4af,#4f4);border-radius:7px;transition:width 0.1s}
+#mobileControls{position:fixed;bottom:50px;left:0;width:100%;display:none;justify-content:space-between;padding:0 20px;z-index:55}
+.touchBtn{width:70px;height:70px;border-radius:50%;background:rgba(255,255,255,0.12);border:2px solid rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;font-size:28px;color:rgba(255,255,255,0.5);user-select:none;-webkit-user-select:none}
+.touchBtn:active{background:rgba(74,170,255,0.3)}
+@media(pointer:coarse){#mobileControls{display:flex}}
+</style>
+</head>
+<body>
+<a id="backLink" href="../">← BACK</a>
+<div id="hud"><div id="distDisplay">Distance: 0m</div><div id="coinDisplay">Coins: 0</div></div>
+<canvas id="c"></canvas>
+<div id="boostBar"><div id="boostFill"></div></div>
+<div id="mobileControls">
+<div style="display:flex;gap:10px">
+<div class="touchBtn" id="tl">◀</div>
+<div class="touchBtn" id="tr">▶</div>
+</div>
+<div style="display:flex;gap:10px">
+<div class="touchBtn" id="tu">▲</div>
+<div class="touchBtn" id="td">▼</div>
+</div>
+<div class="touchBtn" id="boostBtn" style="background:rgba(74,255,170,0.2);border-color:#4fa">🚀</div>
+</div>
+<div id="startScreen">
+<div class="title">Sky Drift Racing</div>
+<div class="subtitle">Fly high, dodge obstacles, collect loot</div>
+<div class="info">Arrow Keys / WASD to steer</div>
+<div class="info">Hold Shift / Tap BOOST for speed boost</div>
+<div class="info">Collect ⛽ fuel and 🪙 coins</div>
+<div class="info">Avoid buildings, birds and clouds!</div>
+<button class="btn" id="startBtn">TAKE OFF</button>
+</div>
+<div id="gameOverScreen">
+<div class="title">CRASHED!</div>
+<div id="finalScore">0</div>
+<div class="info" id="finalStats"></div>
+<button class="btn" id="restartBtn">FLY AGAIN</button>
+</div>
+<script>
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
+let W,H;
+function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight}
+resize();window.addEventListener('resize',resize);
+
+let gameState='start',plane,obstacles,collectibles,clouds,distance,coins,boost,boostFuel,scrollSpeed,difficulty,touchInput,gameOverTimer;
+
+const keys={};
+window.addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(e.key.toLowerCase()))e.preventDefault()});
+window.addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false});
+
+function initGame(){
+plane={x:W/2,y:H*0.75,w:40,h:50,speed:5,tilt:0,invincible:0};
+obstacles=[];collectibles=[];clouds=[];
+for(let i=0;i<15;i++)clouds.push(makeCloud(Math.random()*H));
+distance=0;coins=0;boostFuel=100;scrollSpeed=3;difficulty=0;gameOverTimer=0;
+touchInput={left:false,right:false,up:false,down:false,boost:false};
+}
+
+function makeCloud(y){return{x:Math.random()*W,y:y||-60,w:40+Math.random()*80,h:30+Math.random()*40,speed:0.5+Math.random(),parallax:0.3+Math.random()*0.5,type:Math.random()<0.15?'dark':'normal'}}
+
+function makeObstacle(y){
+let types=['building','bird','cloud'];
+let weights=[0.5,0.3,0.2];
+let r=Math.random(),acc=0,type='building';
+for(let i=0;i<types.length;i++){acc+=weights[i];if(r<acc){type=types[i];break}}
+if(type==='building')return{x:Math.random()*(W-40),y:y||-80,w:30+Math.random()*30,h:50+Math.random()*80,type,speed:scrollSpeed+Math.random()};
+if(type==='bird')return{x:Math.random()*(W-30),y:y||-40,w:24,h:16,type,speed:scrollSpeed+1+Math.random()*2,wingPhase:Math.random()*Math.PI*2};
+return{x:Math.random()*(W-60),y:y||-50,w:50+Math.random()*40,h:30+Math.random()*20,type,speed:scrollSpeed+Math.random()*0.5};
+}
+
+function makeCollectible(y){
+let type=Math.random()<0.3?'fuel':'coin';
+return{x:20+Math.random()*(W-40),y:y||-30,type,w:type==='fuel'?20:16,h:type==='fuel'?20:16,bobPhase:Math.random()*Math.PI*2};
+}
+
+function spawnEntities(){
+if(Math.random()<0.03+difficulty*0.005)obstacles.push(makeObstacle());
+if(Math.random()<0.02)collectibles.push(makeCollectible());
+if(clouds.length<20&&Math.random()<0.02)clouds.push(makeCloud());
+}
+
+function updatePlane(){
+let tilt=0;
+if(keys['arrowleft']||keys['a']||touchInput.left){plane.x-=plane.speed;tilt=-0.3}
+if(keys['arrowright']||keys['d']||touchInput.right){plane.x+=plane.speed;tilt=0.3}
+if(keys['arrowup']||keys['w']||touchInput.up)plane.y-=plane.speed*0.7;
+if(keys['arrowdown']||keys['s']||touchInput.down)plane.y+=plane.speed*0.7;
+plane.tilt+=(tilt-plane.tilt)*0.15;
+plane.x=Math.max(20,Math.min(W-20,plane.x));
+plane.y=Math.max(60,Math.min(H-40,plane.y));
+plane.invincible=Math.max(0,plane.invincible-1);
+
+let usingBoost=(keys['shift']||touchInput.boost)&&boostFuel>0;
+if(usingBoost){boostFuel=Math.max(0,boostFuel-0.5);scrollSpeed=6}
+else{scrollSpeed=3+difficulty*0.3;boostFuel=Math.min(100,boostFuel+0.08)}
+document.getElementById('boostFill').style.width=boostFuel+'%';
+}
+
+function update(){
+if(gameState!=='playing')return;
+difficulty=Math.floor(distance/500);
+scrollSpeed=3+difficulty*0.3;
+distance+=scrollSpeed*0.1;
+spawnEntities();
+updatePlane();
+clouds.forEach(c=>{c.y+=c.speed*c.parallax+scrollSpeed*0.2});
+clouds=clouds.filter(c=>c.y<H+100);
+obstacles.forEach(o=>{o.y+=o.speed;if(o.type==='bird')o.wingPhase+=0.15;o.x+=Math.sin(o.wingPhase||0)*0.5});
+obstacles=obstacles.filter(o=>o.y<H+100);
+collectibles.forEach(c=>{c.y+=scrollSpeed+1;c.bobPhase+=0.08});
+collectibles=collectibles.filter(c=>c.y<H+50);
+
+let px=plane.x,py=plane.y,pw=plane.w*0.4,ph=plane.h*0.4;
+if(plane.invincible<=0){
+obstacles.forEach(o=>{
+if(px-pw<o.x+o.w&&px+pw>o.x&&py-ph<o.y+o.h&&py+ph>o.y){
+gameState='over';gameOverTimer=60;
+}
+});
+}
+collectibles.forEach((c,i)=>{
+if(px-12<c.x+c.w/2&&px+12>c.x&&py-12<c.y+c.h/2&&py+12>c.y){
+if(c.type==='coin')coins++;
+else boostFuel=Math.min(100,boostFuel+30);
+collectibles.splice(i,1);
+}
+});
+document.getElementById('distDisplay').textContent='Distance: '+Math.floor(distance)+'m';
+document.getElementById('coinDisplay').textContent='Coins: '+coins;
+}
+
+function drawPlane(){
+ctx.save();ctx.translate(plane.x,plane.y);ctx.rotate(plane.tilt);
+let alpha=plane.invincible>0?0.5+Math.sin(plane.invincible*0.3)*0.3:1;
+ctx.globalAlpha=alpha;
+ctx.fillStyle='#eee';ctx.beginPath();
+ctx.moveTo(0,-plane.h/2);ctx.lineTo(-plane.w/2,plane.h/2);ctx.lineTo(plane.w/2,plane.h/2);ctx.closePath();ctx.fill();
+ctx.fillStyle='#4af';ctx.fillRect(-plane.w/4,-5,plane.w/2,10);
+ctx.fillStyle='#f44';ctx.beginPath();ctx.arc(0,-plane.h/2+5,4,0,Math.PI*2);ctx.fill();
+ctx.globalAlpha=1;ctx.restore();
+}
+
+function drawBuilding(o){
+ctx.fillStyle='#556';ctx.fillRect(o.x,o.y,o.w,o.h);
+ctx.fillStyle='#ff0';for(let r=0;r<o.h;r+=16)for(let c=0;c<o.w;c+=12){
+if(Math.random()>0.3){ctx.globalAlpha=0.6+Math.random()*0.4;ctx.fillRect(o.x+c+2,o.y+r+2,6,8)}}
+ctx.globalAlpha=1;
+ctx.fillStyle='#334';ctx.fillRect(o.x,o.y,o.w,4);
+}
+
+function drawBird(o){
+ctx.save();ctx.translate(o.x+o.w/2,o.y+o.h/2);
+let wing=Math.sin(o.wingPhase*3)*8;
+ctx.fillStyle='#a55';
+ctx.beginPath();ctx.ellipse(0,0,o.w/2,o.h/2,0,0,Math.PI*2);ctx.fill();
+ctx.strokeStyle='#a55';ctx.lineWidth=2;
+ctx.beginPath();ctx.moveTo(-5,0);ctx.lineTo(-12,-wing);ctx.moveTo(5,0);ctx.lineTo(12,-wing);ctx.stroke();
+ctx.fillStyle='#300';ctx.beginPath();ctx.arc(6,-2,2,0,Math.PI*2);ctx.fill();
+ctx.restore();
+}
+
+function drawObstacle(o){
+if(o.type==='building')drawBuilding(o);
+else if(o.type==='bird')drawBird(o);
+else{
+ctx.globalAlpha=0.5;ctx.fillStyle='#889';
+ctx.beginPath();ctx.ellipse(o.x+o.w/2,o.y+o.h/2,o.w/2,o.h/2,0,0,Math.PI*2);ctx.fill();
+ctx.globalAlpha=0.3;ctx.fillStyle='#aab';
+ctx.beginPath();ctx.ellipse(o.x+o.w/2+10,o.y+o.h/2-5,o.w/3,o.h/3,0,0,Math.PI*2);ctx.fill();
+ctx.globalAlpha=1;
+}
+}
+
+function drawCollectible(c){
+let bob=Math.sin(c.bobPhase)*4;
+ctx.save();ctx.translate(c.x+c.w/2,c.y+c.h/2+bob);
+if(c.type==='fuel'){
+ctx.fillStyle='#4f4';ctx.beginPath();
+ctx.moveTo(0,-10);ctx.lineTo(-7,-2);ctx.lineTo(-7,8);ctx.lineTo(7,8);ctx.lineTo(7,-2);ctx.closePath();ctx.fill();
+ctx.fillStyle='#fff';ctx.font='bold 10px sans-serif';ctx.textAlign='center';ctx.fillText('F',0,6);
+}else{
+ctx.fillStyle='#f4c430';ctx.beginPath();
+for(let i=0;i<5;i++){let a=i*Math.PI*2/5-Math.PI/2;ctx.lineTo(Math.cos(a)*8,Math.sin(a)*8);
+let a2=a+Math.PI/5;ctx.lineTo(Math.cos(a2)*4,Math.sin(a2)*4)}
+ctx.closePath();ctx.fill();
+ctx.shadowColor='#f4c430';ctx.shadowBlur=10;
+}
+ctx.restore();
+}
+
+function drawCloud(c){
+ctx.globalAlpha=c.type==='dark'?0.4:0.2;
+ctx.fillStyle=c.type==='dark'?'#446':'#ccf';
+ctx.beginPath();ctx.ellipse(c.x+c.w/2,c.y+c.h/2,c.w/2,c.h/2,0,0,Math.PI*2);ctx.fill();
+ctx.beginPath();ctx.ellipse(c.x+c.w*0.3,c.y+c.h*0.3,c.w*0.3,c.h*0.3,0,0,Math.PI*2);ctx.fill();
+ctx.beginPath();ctx.ellipse(c.x+c.w*0.7,c.y+c.h*0.4,c.w*0.35,c.h*0.35,0,0,Math.PI*2);ctx.fill();
+ctx.globalAlpha=1;
+}
+
+function drawBackground(){
+let grad=ctx.createLinearGradient(0,0,0,H);
+grad.addColorStop(0,'#0a0a2a');grad.addColorStop(0.5,'#1a1a3a');grad.addColorStop(1,'#0a0a1a');
+ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
+for(let i=0;i<30;i++){let sx=(i*137.5)%W,sy=(i*97.3)%H;
+ctx.fillStyle=`rgba(255,255,255,${0.2+Math.sin(Date.now()*0.001+i)*0.15})`;
+ctx.fillRect(sx,sy,1.5,1.5)}
+}
+
+function draw(){
+ctx.clearRect(0,0,W,H);
+drawBackground();
+clouds.forEach(drawCloud);
+obstacles.forEach(drawObstacle);
+collectibles.forEach(drawCollectible);
+if(gameState==='playing'||gameState==='over')drawPlane();
+}
+
+function gameLoop(){
+if(gameState==='playing')update();
+if(gameState==='over'){gameOverTimer--;if(gameOverTimer<=0)showGameOver()}
+draw();
+requestAnimationFrame(gameLoop);
+}
+
+function showGameOver(){
+document.getElementById('gameOverScreen').style.display='flex';
+document.getElementById('finalScore').textContent=Math.floor(distance)+'m | '+coins+' coins';
+document.getElementById('finalStats').textContent='Distance: '+Math.floor(distance)+'m | Coins: '+coins;
+}
+
+function startGame(){
+document.getElementById('startScreen').style.display='none';
+document.getElementById('gameOverScreen').style.display='none';
+initGame();gameState='playing';
+}
+
+document.getElementById('startBtn').addEventListener('click',startGame);
+document.getElementById('restartBtn').addEventListener('click',startGame);
+
+// Touch controls
+function setupTouch(id,input){
+let el=document.getElementById(id);
+el.addEventListener('touchstart',e=>{e.preventDefault();touchInput[input]=true});
+el.addEventListener('touchend',e=>{e.preventDefault();touchInput[input]=false});
+el.addEventListener('touchcancel',e=>{touchInput[input]=false});
+}
+setupTouch('tl','left');setupTouch('tr','right');setupTouch('tu','up');setupTouch('td','down');setupTouch('boostBtn','boost');
+
+// Swipe for mobile without buttons
+let touchStart=null;
+canvas.addEventListener('touchstart',e=>{touchStart={x:e.touches[0].clientX,y:e.touches[0].clientY}});
+canvas.addEventListener('touchmove',e=>{
+if(!touchStart)return;
+let dx=e.touches[0].clientX-touchStart.x,dy=e.touches[0].clientY-touchStart.y;
+touchInput.left=dx<-30;touchInput.right=dx>30;touchInput.up=dy<-30;touchInput.down=dy>30;
+e.preventDefault();
+},{passive:false});
+canvas.addEventListener('touchend',()=>{touchStart=null;touchInput.left=touchInput.right=touchInput.up=touchInput.down=false});
+
+initGame();gameLoop();
+</script>
+</body>
+</html>
