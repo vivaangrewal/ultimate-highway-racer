@@ -1,26 +1,14 @@
-{
-  "name": "Ultimate Highway Racer",
-  "short_name": "Highway Racer",
-  "description": "3D endless highway racing game with realistic vehicles, garage system, weather effects, and multiple difficulty modes.",
-  "start_url": "/ultimate-highway-racer/",
-  "scope": "/ultimate-highway-racer/",
-  "display": "fullscreen",
+﻿{
+  "name": "VG Play Zone",
+  "short_name": "VG Play Zone",
+  "description": "20 Free Online Games - Racing, Puzzles, Arcade, Action",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
   "orientation": "any",
-  "background_color": "#000000",
+  "background_color": "#0a0a1a",
   "theme_color": "#ff8800",
-  "categories": ["games", "entertainment"],
   "icons": [
-    {
-      "src": "icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" }
   ]
 }

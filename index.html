@@ -1,11 +1,16 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VG Play Zone - Free Online Games</title>
-<meta name="description" content="Play 20+ free online games - racing, puzzles, shooters, arcade and more!">
+<meta name="description" content="Play 20 free online games - racing, puzzles, shooters, arcade and more!">
 <meta name="theme-color" content="#0a0a1a">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="VG Play Zone">
+<link rel="apple-touch-icon" href="icon.png">
 <link rel="icon" type="image/png" href="icon.png">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -19,7 +24,8 @@ body{background:#0a0a1a;color:#fff;font-family:'Segoe UI',Tahoma,sans-serif;min-
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;padding:20px;max-width:1400px;margin:0 auto}
 .card{border-radius:16px;overflow:hidden;background:#111;border:1px solid rgba(255,255,255,.08);cursor:pointer;transition:all .3s;position:relative}
 .card:hover{transform:translateY(-6px);border-color:rgba(255,136,0,.4);box-shadow:0 12px 40px rgba(255,136,0,.15)}
-.card-thumb{width:100%;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;font-size:64px;position:relative;overflow:hidden}
+.card-thumb{width:100%;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.card-thumb .icon-text{font-size:48px;font-weight:900;color:rgba(255,255,255,.9);text-shadow:0 0 20px rgba(255,255,255,.3);position:relative;z-index:1;font-family:Arial,sans-serif}
 .card-thumb::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 50%,rgba(0,0,0,.6) 100%)}
 .card-body{padding:14px 16px}
 .card-title{font-size:16px;font-weight:700;color:#fff}
@@ -32,7 +38,7 @@ body{background:#0a0a1a;color:#fff;font-family:'Segoe UI',Tahoma,sans-serif;min-
 .card:hover .play-overlay{opacity:1}
 .play-btn{width:64px;height:64px;border-radius:50%;background:rgba(255,136,0,.9);display:flex;align-items:center;justify-content:center;font-size:28px;border:none;cursor:pointer;color:#fff}
 footer{text-align:center;padding:30px 20px;color:#444;font-size:12px;letter-spacing:2px}
-@media(max-width:640px){.grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;padding:12px}.card-thumb{font-size:40px}.card-body{padding:10px 12px}.card-title{font-size:13px}}
+@media(max-width:640px){.grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;padding:12px}.card-thumb .icon-text{font-size:32px}.card-body{padding:10px 12px}.card-title{font-size:13px}}
 </style>
 </head>
 <body>
@@ -53,33 +59,33 @@ footer{text-align:center;padding:30px 20px;color:#444;font-size:12px;letter-spac
 <footer>DEVELOPED BY VIVAAN GREWAL</footer>
 <script>
 var GAMES=[
-{id:'highway-racer',name:'Ultimate Highway Racer',cat:'racing',icon:'🏎️',badge:'',grad:'linear-gradient(135deg,#1a3a1a,#0a1a0a)',desc:'3D highway racing'},
-{id:'sky-drift',name:'Sky Drift Racing',cat:'racing',icon:'✈️',badge:'3D',grad:'linear-gradient(135deg,#0a1a3a,#1a0a2e)',desc:'Flying car racing'},
-{id:'neon-runner',name:'Neon Runner',cat:'action',icon:'🏃',badge:'NEW',grad:'linear-gradient(135deg,#2a0a3a,#0a0a2a)',desc:'Side-scroll runner'},
-{id:'cube-smash',name:'Cube Smash',cat:'puzzle',icon:'🧊',badge:'',grad:'linear-gradient(135deg,#0a2a3a,#0a0a1a)',desc:'3D brick breaker'},
-{id:'space-blaster',name:'Space Blaster',cat:'action',icon:'🚀',badge:'HOT',grad:'linear-gradient(135deg,#0a0a2a,#1a0a1a)',desc:'Space shooter'},
-{id:'solitaire',name:'Solitaire Classic',cat:'board',icon:'🃏',badge:'',grad:'linear-gradient(135deg,#0a2a0a,#0a1a0a)',desc:'Card game'},
-{id:'flappy-clone',name:'Flappy Wings',cat:'arcade',icon:'🐦',badge:'',grad:'linear-gradient(135deg,#2a2a0a,#1a1a0a)',desc:'Tap to fly'},
-{id:'snake-neon',name:'Snake Neon',cat:'classic',icon:'🐍',badge:'',grad:'linear-gradient(135deg,#0a2a1a,#0a1a0a)',desc:'Classic snake'},
-{id:'game-2048',name:'2048',cat:'puzzle',icon:'🔢',badge:'',grad:'linear-gradient(135deg,#3a2a0a,#1a1a0a)',desc:'Number puzzle'},
-{id:'maze-runner',name:'Maze Runner 3D',cat:'action',icon:'maze',badge:'3D',grad:'linear-gradient(135deg,#1a1a2a,#0a0a1a)',desc:'First-person maze'},
-{id:'traffic-racer',name:'Traffic Racer',cat:'racing',icon:'🚗',badge:'',grad:'linear-gradient(135deg,#1a2a1a,#0a1a0a)',desc:'Dodge traffic'},
-{id:'jump-hero',name:'Jump Hero',cat:'arcade',icon:'🦸',badge:'NEW',grad:'linear-gradient(135deg,#2a1a0a,#1a0a0a)',desc:'One-button jumper'},
-{id:'color-match',name:'Color Match',cat:'arcade',icon:'🎨',badge:'',grad:'linear-gradient(135deg,#3a0a1a,#1a0a0a)',desc:'Reaction speed'},
-{id:'chess',name:'Chess vs AI',cat:'board',icon:'♟️',badge:'',grad:'linear-gradient(135deg,#1a1a1a,#0a0a0a)',desc:'Classic chess'},
-{id:'bubble-pop',name:'Bubble Pop',cat:'arcade',icon:'🫧',badge:'',grad:'linear-gradient(135deg,#0a1a3a,#0a0a2a)',desc:'Bubble shooter'},
-{id:'zombie-survival',name:'Zombie Survival',cat:'action',icon:'🧟',badge:'HOT',grad:'linear-gradient(135deg,#1a0a0a,#0a0a0a)',desc:'Survive the horde'},
-{id:'memory-cards',name:'Memory Cards',cat:'puzzle',icon:'🧠',badge:'',grad:'linear-gradient(135deg,#2a0a2a,#0a0a1a)',desc:'Match the cards'},
-{id:'word-scramble',name:'Word Scramble',cat:'puzzle',icon:'📝',badge:'',grad:'linear-gradient(135deg,#1a2a2a,#0a1a1a)',desc:'Unscramble words'},
-{id:'endless-climber',name:'Endless Climber',cat:'arcade',icon:'🧗',badge:'NEW',grad:'linear-gradient(135deg,#2a1a1a,#1a0a0a)',desc:'Vertical runner'},
-{id:'mini-golf',name:'Mini Golf 3D',cat:'arcade',icon:'⛳',badge:'3D',grad:'linear-gradient(135deg,#0a2a1a,#0a1a0a)',desc:'3D golf game'}
+{id:'highway-racer',name:'Ultimate Highway Racer',cat:'racing',icon:'HR',badge:'',grad:'linear-gradient(135deg,#1a3a1a,#0a1a0a)',desc:'3D Highway Racing'},
+{id:'sky-drift',name:'Sky Drift Racing',cat:'racing',icon:'SD',badge:'3D',grad:'linear-gradient(135deg,#0a1a3a,#1a0a2e)',desc:'Flying Car Racing'},
+{id:'neon-runner',name:'Neon Runner',cat:'action',icon:'NR',badge:'NEW',grad:'linear-gradient(135deg,#2a0a3a,#0a0a2a)',desc:'Side-Scroll Runner'},
+{id:'cube-smash',name:'Cube Smash',cat:'puzzle',icon:'CS',badge:'',grad:'linear-gradient(135deg,#0a2a3a,#0a0a1a)',desc:'3D Brick Breaker'},
+{id:'space-blaster',name:'Space Blaster',cat:'action',icon:'SB',badge:'HOT',grad:'linear-gradient(135deg,#0a0a2a,#1a0a1a)',desc:'Space Shooter'},
+{id:'solitaire',name:'Solitaire Classic',cat:'board',icon:'SC',badge:'',grad:'linear-gradient(135deg,#0a2a0a,#0a1a0a)',desc:'Card Game'},
+{id:'flappy-clone',name:'Flappy Wings',cat:'arcade',icon:'FW',badge:'',grad:'linear-gradient(135deg,#2a2a0a,#1a1a0a)',desc:'Tap to Fly'},
+{id:'snake-neon',name:'Snake Neon',cat:'classic',icon:'SN',badge:'',grad:'linear-gradient(135deg,#0a2a1a,#0a1a0a)',desc:'Classic Snake'},
+{id:'game-2048',name:'2048',cat:'puzzle',icon:'48',badge:'',grad:'linear-gradient(135deg,#3a2a0a,#1a1a0a)',desc:'Number Puzzle'},
+{id:'maze-runner',name:'Maze Runner 3D',cat:'action',icon:'MR',badge:'3D',grad:'linear-gradient(135deg,#1a1a2a,#0a0a1a)',desc:'First-Person Maze'},
+{id:'traffic-racer',name:'Traffic Racer',cat:'racing',icon:'TR',badge:'',grad:'linear-gradient(135deg,#1a2a1a,#0a1a0a)',desc:'Dodge Traffic'},
+{id:'jump-hero',name:'Jump Hero',cat:'arcade',icon:'JH',badge:'NEW',grad:'linear-gradient(135deg,#2a1a0a,#1a0a0a)',desc:'One-Button Jumper'},
+{id:'color-match',name:'Color Match',cat:'arcade',icon:'CM',badge:'',grad:'linear-gradient(135deg,#3a0a1a,#1a0a0a)',desc:'Reaction Speed'},
+{id:'chess',name:'Chess vs AI',cat:'board',icon:'CH',badge:'',grad:'linear-gradient(135deg,#1a1a1a,#0a0a0a)',desc:'Classic Chess'},
+{id:'bubble-pop',name:'Bubble Pop',cat:'arcade',icon:'BP',badge:'',grad:'linear-gradient(135deg,#0a1a3a,#0a0a2a)',desc:'Bubble Shooter'},
+{id:'zombie-survival',name:'Zombie Survival',cat:'action',icon:'ZS',badge:'HOT',grad:'linear-gradient(135deg,#1a0a0a,#0a0a0a)',desc:'Survive the Horde'},
+{id:'memory-cards',name:'Memory Cards',cat:'puzzle',icon:'MC',badge:'',grad:'linear-gradient(135deg,#2a0a2a,#0a0a1a)',desc:'Match the Cards'},
+{id:'word-scramble',name:'Word Scramble',cat:'puzzle',icon:'WS',badge:'',grad:'linear-gradient(135deg,#1a2a2a,#0a1a1a)',desc:'Unscramble Words'},
+{id:'endless-climber',name:'Endless Climber',cat:'arcade',icon:'EC',badge:'NEW',grad:'linear-gradient(135deg,#2a1a1a,#1a0a0a)',desc:'Vertical Runner'},
+{id:'mini-golf',name:'Mini Golf 3D',cat:'arcade',icon:'MG',badge:'3D',grad:'linear-gradient(135deg,#0a2a1a,#0a1a0a)',desc:'3D Golf Game'}
 ];
 function renderGames(filter){
 var grid=document.getElementById('grid');grid.innerHTML='';
 var list=filter==='all'?GAMES:GAMES.filter(function(g){return g.cat===filter});
 list.forEach(function(g){
 var d=document.createElement('div');d.className='card';d.setAttribute('data-cat',g.cat);
-d.innerHTML='<div class="card-thumb" style="background:'+g.grad+'">'+(g.badge?'<div class="card-badge badge-'+g.badge.toLowerCase()+'">'+g.badge+'</div>':'')+'<span style="position:relative;z-index:1">'+g.icon+'</span><div class="play-overlay"><button class="play-btn">▶</button></div></div><div class="card-body"><div class="card-title">'+g.name+'</div><div class="card-cat">'+g.cat+' · '+g.desc+'</div></div>';
+d.innerHTML='<div class="card-thumb" style="background:'+g.grad+'">'+(g.badge?'<div class="card-badge badge-'+g.badge.toLowerCase()+'">'+g.badge+'</div>':'')+'<span class="icon-text">'+g.icon+'</span><div class="play-overlay"><button class="play-btn">&#9654;</button></div></div><div class="card-body"><div class="card-title">'+g.name+'</div><div class="card-cat">'+g.cat+' - '+g.desc+'</div></div>';
 d.addEventListener('click',function(){window.location.href='games/'+g.id+'/index.html'});
 grid.appendChild(d)});
 }
